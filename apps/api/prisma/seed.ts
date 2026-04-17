@@ -70,60 +70,69 @@ async function main(): Promise<void> {
   ]);
   console.log(`✅ ${categories.length} compliance categories seeded`);
 
-  // Top 5 sectors (KBLI 2020)
-  const sectors = await Promise.all([
-    prisma.sector.upsert({
-      where: { id: '10000000-0000-0000-0000-000000000001' },
-      update: {},
-      create: {
-        id: '10000000-0000-0000-0000-000000000001',
-        name: 'Perdagangan Besar dan Eceran',
-        code: 'G',
-        icon: 'store',
-      },
-    }),
-    prisma.sector.upsert({
-      where: { id: '10000000-0000-0000-0000-000000000002' },
-      update: {},
-      create: {
-        id: '10000000-0000-0000-0000-000000000002',
-        name: 'Industri Pengolahan',
-        code: 'C',
-        icon: 'factory',
-      },
-    }),
-    prisma.sector.upsert({
-      where: { id: '10000000-0000-0000-0000-000000000003' },
-      update: {},
-      create: {
-        id: '10000000-0000-0000-0000-000000000003',
-        name: 'Penyediaan Akomodasi dan Makan Minum',
-        code: 'I',
-        icon: 'utensils',
-      },
-    }),
-    prisma.sector.upsert({
-      where: { id: '10000000-0000-0000-0000-000000000004' },
-      update: {},
-      create: {
-        id: '10000000-0000-0000-0000-000000000004',
-        name: 'Informasi dan Komunikasi',
-        code: 'J',
-        icon: 'wifi',
-      },
-    }),
-    prisma.sector.upsert({
-      where: { id: '10000000-0000-0000-0000-000000000005' },
-      update: {},
-      create: {
-        id: '10000000-0000-0000-0000-000000000005',
-        name: 'Jasa Profesional, Ilmiah, dan Teknis',
-        code: 'M',
-        icon: 'briefcase',
-      },
-    }),
-  ]);
-  console.log(`✅ ${sectors.length} sectors seeded`);
+  // Root sectors (KBLI 2020 — 15 sectors)
+  const sectorData = [
+    { id: '10000000-0000-0000-0000-000000000001', name: 'Perdagangan Besar dan Eceran', code: 'G', icon: '🏪' },
+    { id: '10000000-0000-0000-0000-000000000002', name: 'Industri Pengolahan', code: 'C', icon: '🏭' },
+    { id: '10000000-0000-0000-0000-000000000003', name: 'Penyediaan Akomodasi dan Makan Minum', code: 'I', icon: '🍽️' },
+    { id: '10000000-0000-0000-0000-000000000004', name: 'Informasi dan Komunikasi', code: 'J', icon: '📡' },
+    { id: '10000000-0000-0000-0000-000000000005', name: 'Jasa Profesional, Ilmiah, dan Teknis', code: 'M', icon: '💼' },
+    { id: '10000000-0000-0000-0000-000000000006', name: 'Konstruksi', code: 'F', icon: '🏗️' },
+    { id: '10000000-0000-0000-0000-000000000007', name: 'Pertanian, Kehutanan, dan Perikanan', code: 'A', icon: '🌾' },
+    { id: '10000000-0000-0000-0000-000000000008', name: 'Transportasi dan Pergudangan', code: 'H', icon: '🚛' },
+    { id: '10000000-0000-0000-0000-000000000009', name: 'Pertambangan dan Penggalian', code: 'B', icon: '⛏️' },
+    { id: '10000000-0000-0000-0000-000000000010', name: 'Jasa Keuangan dan Asuransi', code: 'K', icon: '🏦' },
+    { id: '10000000-0000-0000-0000-000000000011', name: 'Jasa Pendidikan', code: 'P', icon: '🎓' },
+    { id: '10000000-0000-0000-0000-000000000012', name: 'Jasa Kesehatan dan Kegiatan Sosial', code: 'Q', icon: '🏥' },
+    { id: '10000000-0000-0000-0000-000000000013', name: 'Real Estate', code: 'L', icon: '🏠' },
+    { id: '10000000-0000-0000-0000-000000000014', name: 'Kesenian, Hiburan, dan Rekreasi', code: 'R', icon: '🎭' },
+    { id: '10000000-0000-0000-0000-000000000015', name: 'Jasa Lainnya', code: 'S', icon: '🔧' },
+  ];
+
+  const sectors = await Promise.all(
+    sectorData.map((s) =>
+      prisma.sector.upsert({
+        where: { id: s.id },
+        update: {},
+        create: s,
+      }),
+    ),
+  );
+  console.log(`✅ ${sectors.length} root sectors seeded`);
+
+  // Sub-sectors (2-3 per root sector for top 5)
+  const subSectorData = [
+    // G — Perdagangan
+    { id: '20000000-0000-0000-0000-000000000001', name: 'Perdagangan Eceran', code: 'G47', icon: '🛒', parentId: '10000000-0000-0000-0000-000000000001' },
+    { id: '20000000-0000-0000-0000-000000000002', name: 'Perdagangan Besar', code: 'G46', icon: '📦', parentId: '10000000-0000-0000-0000-000000000001' },
+    { id: '20000000-0000-0000-0000-000000000003', name: 'Perdagangan Online / E-Commerce', code: 'G47.9', icon: '🌐', parentId: '10000000-0000-0000-0000-000000000001' },
+    // C — Industri Pengolahan
+    { id: '20000000-0000-0000-0000-000000000004', name: 'Industri Makanan', code: 'C10', icon: '🍔', parentId: '10000000-0000-0000-0000-000000000002' },
+    { id: '20000000-0000-0000-0000-000000000005', name: 'Industri Tekstil dan Pakaian', code: 'C13', icon: '👕', parentId: '10000000-0000-0000-0000-000000000002' },
+    { id: '20000000-0000-0000-0000-000000000006', name: 'Industri Kimia dan Farmasi', code: 'C20', icon: '💊', parentId: '10000000-0000-0000-0000-000000000002' },
+    // I — Akomodasi & F&B
+    { id: '20000000-0000-0000-0000-000000000007', name: 'Restoran dan Kafe', code: 'I56', icon: '☕', parentId: '10000000-0000-0000-0000-000000000003' },
+    { id: '20000000-0000-0000-0000-000000000008', name: 'Hotel dan Penginapan', code: 'I55', icon: '🏨', parentId: '10000000-0000-0000-0000-000000000003' },
+    // J — IT
+    { id: '20000000-0000-0000-0000-000000000009', name: 'Pengembangan Perangkat Lunak', code: 'J62', icon: '💻', parentId: '10000000-0000-0000-0000-000000000004' },
+    { id: '20000000-0000-0000-0000-000000000010', name: 'Jasa Telekomunikasi', code: 'J61', icon: '📱', parentId: '10000000-0000-0000-0000-000000000004' },
+    { id: '20000000-0000-0000-0000-000000000011', name: 'Media dan Konten Digital', code: 'J63', icon: '🎬', parentId: '10000000-0000-0000-0000-000000000004' },
+    // M — Jasa Profesional
+    { id: '20000000-0000-0000-0000-000000000012', name: 'Jasa Hukum', code: 'M69', icon: '⚖️', parentId: '10000000-0000-0000-0000-000000000005' },
+    { id: '20000000-0000-0000-0000-000000000013', name: 'Jasa Akuntansi dan Audit', code: 'M69.2', icon: '📊', parentId: '10000000-0000-0000-0000-000000000005' },
+    { id: '20000000-0000-0000-0000-000000000014', name: 'Konsultasi Manajemen', code: 'M70', icon: '📋', parentId: '10000000-0000-0000-0000-000000000005' },
+  ];
+
+  const subSectors = await Promise.all(
+    subSectorData.map((s) =>
+      prisma.sector.upsert({
+        where: { id: s.id },
+        update: {},
+        create: s,
+      }),
+    ),
+  );
+  console.log(`✅ ${subSectors.length} sub-sectors seeded`);
 
   // Default feature flags
   const flags = await Promise.all([
