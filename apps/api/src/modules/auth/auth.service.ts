@@ -179,4 +179,57 @@ export class AuthService {
       },
     });
   }
+
+  /** Login/register via Google OAuth — called after Supabase OAuth callback */
+  async loginWithGoogle(accessToken: string) {
+    // Verify the token and get user from Supabase
+    const { data, error } = await this.supabase.auth.getUser(accessToken);
+
+    if (error || !data.user) {
+      throw new UnauthorizedException({
+        code: 'AUTH_REQUIRED',
+        message: 'Google login gagal. Silakan coba lagi.',
+      });
+    }
+
+    const supabaseUser = data.user;
+    const metadata = supabaseUser.user_metadata ?? {};
+
+    // Upsert user to our DB (merge by Supabase ID)
+    const user = await this.prisma.user.upsert({
+      where: { id: supabaseUser.id },
+      update: {
+        emailVerified: true, // Google users are always verified
+        lastLoginAt: new Date(),
+        // Update avatar from Google if not manually set
+        ...(metadata.avatar_url && { avatarUrl: metadata.avatar_url as string }),
+        ...(metadata.full_name && { fullName: metadata.full_name as string }),
+      },
+      create: {
+        id: supabaseUser.id,
+        email: supabaseUser.email!,
+        fullName: (metadata.full_name as string) ?? (metadata.name as string) ?? 'User',
+        avatarUrl: (metadata.avatar_url as string) ?? null,
+        role: 'user',
+        plan: 'free',
+        emailVerified: true,
+      },
+      select: {
+        id: true,
+        email: true,
+        fullName: true,
+        avatarUrl: true,
+        role: true,
+        plan: true,
+        onboardingCompleted: true,
+      },
+    });
+
+    this.logger.log(`Google SSO: ${user.email} (${user.onboardingCompleted ? 'existing' : 'new'})`);
+
+    return {
+      user,
+      isNewUser: !user.onboardingCompleted,
+    };
+  }
 }

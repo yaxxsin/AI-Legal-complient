@@ -88,4 +88,17 @@ export class AuthController {
       res.redirect(`${frontendUrl}/login?verified=true`);
     }
   }
+
+  @Post('google')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Sync Google SSO user to our database' })
+  async loginWithGoogle(
+    @Headers('authorization') authHeader: string,
+  ) {
+    const token = authHeader?.replace('Bearer ', '');
+    if (!token) {
+      return { success: false, error: 'Token required' };
+    }
+    return this.authService.loginWithGoogle(token);
+  }
 }

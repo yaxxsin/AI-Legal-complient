@@ -111,6 +111,61 @@ export function useAuth() {
     return true;
   }
 
+  /** Sign in with Google OAuth (redirects to Google) */
+  async function signInWithGoogle(redirectTo?: string) {
+    setState({ isLoading: true, error: null });
+
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: {
+        redirectTo: redirectTo ?? `${window.location.origin}/auth/callback`,
+      },
+    });
+
+    if (error) {
+      setState({ isLoading: false, error: error.message });
+      return false;
+    }
+
+    // Browser redirects — loading stays true
+    return true;
+  }
+
+  /** Change password (verify old password first, then update) */
+  async function changePassword(oldPassword: string, newPassword: string) {
+    setState({ isLoading: true, error: null });
+
+    // Step 1: Verify old password by attempting sign-in
+    const { data: userData } = await supabase.auth.getUser();
+    if (!userData?.user?.email) {
+      setState({ isLoading: false, error: 'Sesi tidak valid. Silakan login ulang.' });
+      return false;
+    }
+
+    const { error: verifyError } = await supabase.auth.signInWithPassword({
+      email: userData.user.email,
+      password: oldPassword,
+    });
+
+    if (verifyError) {
+      setState({ isLoading: false, error: 'Password lama salah' });
+      return false;
+    }
+
+    // Step 2: Update to new password
+    const { error: updateError } = await supabase.auth.updateUser({
+      password: newPassword,
+    });
+
+    if (updateError) {
+      setState({ isLoading: false, error: updateError.message });
+      return false;
+    }
+
+    setState({ isLoading: false, error: null });
+    return true;
+  }
+
   return {
     ...state,
     signUp,
@@ -118,5 +173,7 @@ export function useAuth() {
     signOut,
     resetPassword,
     updatePassword,
+    signInWithGoogle,
+    changePassword,
   };
 }

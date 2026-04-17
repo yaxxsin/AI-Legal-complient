@@ -15,6 +15,8 @@ interface UserProfile {
   plan: string;
   emailVerified: boolean;
   onboardingCompleted: boolean;
+  lastLoginAt: string | null;
+  createdAt: string;
 }
 
 async function fetchCurrentUser(): Promise<UserProfile | null> {

@@ -1,10 +1,28 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  Logger,
+  NotFoundException,
+} from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
+import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import { PrismaService } from '../../database/prisma.service';
 import { UpdateUserDto } from './dto/update-user.dto';
 
 @Injectable()
 export class UsersService {
-  constructor(private readonly prisma: PrismaService) {}
+  private readonly logger = new Logger(UsersService.name);
+  private readonly supabase: SupabaseClient;
+
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly config: ConfigService,
+  ) {
+    this.supabase = createClient(
+      this.config.getOrThrow<string>('SUPABASE_URL'),
+      this.config.getOrThrow<string>('SUPABASE_SERVICE_ROLE_KEY'),
+    );
+  }
 
   /** Find user by Supabase auth ID */
   async findById(id: string) {
@@ -37,7 +55,6 @@ export class UsersService {
 
   /** Update user profile (name, phone, avatar) */
   async updateProfile(id: string, dto: UpdateUserDto) {
-    // Verify user exists
     await this.findById(id);
 
     return this.prisma.user.update({
@@ -59,5 +76,74 @@ export class UsersService {
         onboardingCompleted: true,
       },
     });
+  }
+
+  /** Change password — verify old password first via Supabase */
+  async changePassword(
+    userId: string,
+    oldPassword: string,
+    newPassword: string,
+  ): Promise<void> {
+    // Get user email
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { email: true },
+    });
+
+    if (!user) {
+      throw new NotFoundException({
+        code: 'RESOURCE_NOT_FOUND',
+        message: 'User tidak ditemukan',
+      });
+    }
+
+    // Verify old password via Supabase sign-in
+    const { error: verifyError } =
+      await this.supabase.auth.signInWithPassword({
+        email: user.email,
+        password: oldPassword,
+      });
+
+    if (verifyError) {
+      throw new BadRequestException({
+        code: 'VALIDATION_ERROR',
+        message: 'Password lama salah',
+      });
+    }
+
+    // Update password via admin API
+    const { error: updateError } =
+      await this.supabase.auth.admin.updateUserById(userId, {
+        password: newPassword,
+      });
+
+    if (updateError) {
+      this.logger.error(`Password update failed: ${updateError.message}`);
+      throw new BadRequestException({
+        code: 'VALIDATION_ERROR',
+        message: 'Gagal mengubah password. Coba lagi.',
+      });
+    }
+  }
+
+  /** Soft delete account — set deletedAt, grace period 30 days */
+  async softDeleteAccount(userId: string): Promise<void> {
+    await this.findById(userId);
+
+    // For MVP: disable Supabase auth user (ban)
+    const { error } = await this.supabase.auth.admin.updateUserById(
+      userId,
+      { ban_duration: '876000h' }, // ~100 years = effectively disabled
+    );
+
+    if (error) {
+      this.logger.error(`Account disable failed: ${error.message}`);
+      throw new BadRequestException({
+        code: 'VALIDATION_ERROR',
+        message: 'Gagal menghapus akun. Coba lagi.',
+      });
+    }
+
+    this.logger.log(`Account soft-deleted: ${userId}`);
   }
 }

@@ -17,10 +17,6 @@ export class RolesGuard implements CanActivate {
       context.getClass(),
     ]);
 
-    if (!requiredRoles || requiredRoles.length === 0) {
-      return true;
-    }
-
     const request = context.switchToHttp().getRequest();
     const supabaseUser = request.user;
 
@@ -28,17 +24,32 @@ export class RolesGuard implements CanActivate {
       throw new ForbiddenException('User not authenticated');
     }
 
+    // Always fetch and cache dbUser for downstream guards (PlanGuard)
     const dbUser = await this.prisma.user.findUnique({
       where: { id: supabaseUser.id },
-      select: { role: true },
+      select: { role: true, plan: true },
     });
 
-    if (!dbUser || !requiredRoles.includes(dbUser.role)) {
-      throw new ForbiddenException('Insufficient permissions');
+    if (!dbUser) {
+      throw new ForbiddenException('User not found in database');
     }
 
-    // Attach db user role to request
-    request.userRole = dbUser.role;
+    // Attach to request for PlanGuard and controllers
+    request.dbUser = dbUser;
+
+    // If no role restriction, allow (still cached dbUser)
+    if (!requiredRoles || requiredRoles.length === 0) {
+      return true;
+    }
+
+    if (!requiredRoles.includes(dbUser.role)) {
+      throw new ForbiddenException({
+        code: 'FORBIDDEN',
+        message: 'Insufficient permissions',
+      });
+    }
+
     return true;
   }
 }
+

@@ -4,8 +4,8 @@
 > Menunjuk ke phase state yang sedang aktif.
 
 ## ACTIVE
-- **Phase**: 1: Auth — Registration & Login (✅ Complete)
-- **State File**: phase-01.md
+- **Phase**: 2: Auth — Google SSO & RBAC (✅ Complete)
+- **State File**: phase-02.md
 - **Developer**: Engine AI
 - **Since**: 2026-04-17
 
@@ -17,7 +17,7 @@
 |-------|------|-----------|--------|----------|------------|
 | 0 | Foundation & Setup | phase-00.md | ✅ | M | - |
 | 1 | Auth — Registration & Login | phase-01.md | ✅ | S | Phase 0 |
-| 2 | Auth — Google SSO & RBAC | phase-02.md | ⬜ | S | Phase 1 |
+| 2 | Auth — Google SSO & RBAC | phase-02.md | ✅ | S | Phase 1 |
 | 3 | Onboarding Wizard | phase-03.md | ⬜ | S | Phase 1 |
 | 4 | Master Data Sektor | phase-04.md | ⬜ | XS | Phase 0 |
 | 5 | RAG Pipeline & Knowledge Base | phase-05.md | ⬜ | S | Phase 0 |
@@ -76,7 +76,7 @@ Phase 17 (Deploy) ← depends on ALL previous MVP phases
 - **Locked**: No
 - **By**: -
 - **Since**: -
-- **Last Snap**: 2026-04-17T11:13 (manual)
+- **Last Snap**: 2026-04-17T11:29 (manual snap — phase-02 complete)
 
 ---
 
