@@ -10,7 +10,7 @@ import { PrismaService } from '../../database/prisma.service';
 
 /**
  * Checks if the authenticated user's plan meets the required plan(s).
- * Must be used AFTER SupabaseAuthGuard.
+ * Must be used AFTER JwtAuthGuard.
  */
 @Injectable()
 export class PlanGuard implements CanActivate {
@@ -30,9 +30,9 @@ export class PlanGuard implements CanActivate {
     }
 
     const request = context.switchToHttp().getRequest();
-    const supabaseUser = request.user;
+    const user = request.user;
 
-    if (!supabaseUser?.id) {
+    if (!user?.id) {
       throw new ForbiddenException('User not authenticated');
     }
 
@@ -40,7 +40,7 @@ export class PlanGuard implements CanActivate {
     const dbUser =
       request.dbUser ??
       (await this.prisma.user.findUnique({
-        where: { id: supabaseUser.id },
+        where: { id: user.id },
         select: { plan: true },
       }));
 

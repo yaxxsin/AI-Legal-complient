@@ -1,4 +1,3 @@
-import { createServerClient } from '@supabase/ssr';
 import { type NextRequest, NextResponse } from 'next/server';
 
 const PROTECTED_ROUTES = ['/dashboard', '/onboarding', '/chat', '/checklist', '/documents', '/notifications', '/billing', '/settings'];
@@ -6,51 +5,29 @@ const ADMIN_ROUTES = ['/admin'];
 const AUTH_ROUTES = ['/login', '/register', '/forgot-password', '/reset-password'];
 
 export async function middleware(request: NextRequest) {
-  let response = NextResponse.next({ request });
-
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        getAll() {
-          return request.cookies.getAll();
-        },
-        setAll(cookiesToSet: { name: string; value: string; options?: Record<string, unknown> }[]) {
-          cookiesToSet.forEach(({ name, value }: { name: string; value: string }) =>
-            request.cookies.set(name, value),
-          );
-          response = NextResponse.next({ request });
-          cookiesToSet.forEach(({ name, value, options }: { name: string; value: string; options?: Record<string, unknown> }) =>
-            response.cookies.set(name, value, options as never),
-          );
-        },
-      },
-    },
-  );
-
-  const { data: { user } } = await supabase.auth.getUser();
   const pathname = request.nextUrl.pathname;
+
+  // Read JWT from cookie
+  const token = request.cookies.get('access_token')?.value;
+  const hasAuth = !!token;
 
   const isProtected = PROTECTED_ROUTES.some((r) => pathname.startsWith(r));
   const isAdmin = ADMIN_ROUTES.some((r) => pathname.startsWith(r));
   const isAuth = AUTH_ROUTES.some((r) => pathname.startsWith(r));
 
   // Redirect unauthenticated users away from protected routes
-  if (!user && (isProtected || isAdmin)) {
+  if (!hasAuth && (isProtected || isAdmin)) {
     const redirectUrl = new URL('/login', request.url);
     redirectUrl.searchParams.set('redirect', pathname);
     return NextResponse.redirect(redirectUrl);
   }
 
   // Redirect authenticated users away from auth pages
-  if (user && isAuth) {
+  if (hasAuth && isAuth) {
     return NextResponse.redirect(new URL('/dashboard', request.url));
   }
 
-  // TODO: Add admin role check for admin routes (Phase 2)
-
-  return response;
+  return NextResponse.next();
 }
 
 export const config = {

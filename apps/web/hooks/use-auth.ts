@@ -2,14 +2,15 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { createClient } from '@/lib/supabase/client';
+
+const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001/api/v1';
 
 interface AuthState {
   isLoading: boolean;
   error: string | null;
 }
 
-/** Hook for Supabase auth actions (client-side) */
+/** Hook for auth actions — calls NestJS API directly */
 export function useAuth() {
   const router = useRouter();
   const [state, setState] = useState<AuthState>({
@@ -17,59 +18,78 @@ export function useAuth() {
     error: null,
   });
 
-  const supabase = createClient();
-
   /** Register with email + password */
   async function signUp(email: string, password: string, fullName: string) {
     setState({ isLoading: true, error: null });
 
-    const { error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        data: { full_name: fullName },
-        emailRedirectTo: `${window.location.origin}/auth/callback`,
-      },
-    });
+    try {
+      const res = await fetch(`${API_URL}/auth/register`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ email, password, fullName }),
+      });
 
-    if (error) {
-      setState({ isLoading: false, error: error.message });
+      const data = await res.json();
+      if (!res.ok) {
+        setState({ isLoading: false, error: data.message ?? 'Registrasi gagal' });
+        return false;
+      }
+
+      // Store token in cookie via document.cookie (httpOnly should be set server-side)
+      if (data.accessToken) {
+        document.cookie = `access_token=${data.accessToken}; path=/; max-age=3600; SameSite=Lax`;
+      }
+
+      setState({ isLoading: false, error: null });
+      return true;
+    } catch {
+      setState({ isLoading: false, error: 'Terjadi kesalahan jaringan' });
       return false;
     }
-
-    setState({ isLoading: false, error: null });
-    return true;
   }
 
   /** Sign in with email + password */
   async function signIn(email: string, password: string) {
     setState({ isLoading: true, error: null });
 
-    const { error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
+    try {
+      const res = await fetch(`${API_URL}/auth/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ email, password }),
+      });
 
-    if (error) {
-      setState({ isLoading: false, error: 'Email atau password salah' });
+      const data = await res.json();
+      if (!res.ok) {
+        setState({ isLoading: false, error: data.message ?? 'Email atau password salah' });
+        return false;
+      }
+
+      if (data.accessToken) {
+        document.cookie = `access_token=${data.accessToken}; path=/; max-age=${data.expiresIn ?? 3600}; SameSite=Lax`;
+      }
+      if (data.refreshToken) {
+        document.cookie = `refresh_token=${data.refreshToken}; path=/; max-age=2592000; SameSite=Lax`;
+      }
+
+      setState({ isLoading: false, error: null });
+      router.refresh();
+      return true;
+    } catch {
+      setState({ isLoading: false, error: 'Terjadi kesalahan jaringan' });
       return false;
     }
-
-    setState({ isLoading: false, error: null });
-    router.refresh();
-    return true;
   }
 
   /** Sign out current session */
   async function signOut() {
     setState({ isLoading: true, error: null });
 
-    const { error } = await supabase.auth.signOut();
-
-    if (error) {
-      setState({ isLoading: false, error: error.message });
-      return false;
-    }
+    // Clear cookies
+    document.cookie = 'access_token=; path=/; max-age=0';
+    document.cookie = 'refresh_token=; path=/; max-age=0';
 
     setState({ isLoading: false, error: null });
     router.push('/login');
@@ -81,89 +101,53 @@ export function useAuth() {
   async function resetPassword(email: string) {
     setState({ isLoading: true, error: null });
 
-    const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: `${window.location.origin}/reset-password`,
-    });
+    try {
+      const res = await fetch(`${API_URL}/auth/forgot-password`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email }),
+      });
 
-    if (error) {
-      setState({ isLoading: false, error: error.message });
+      if (!res.ok) {
+        setState({ isLoading: false, error: 'Gagal mengirim email reset' });
+        return false;
+      }
+
+      setState({ isLoading: false, error: null });
+      return true;
+    } catch {
+      setState({ isLoading: false, error: 'Terjadi kesalahan jaringan' });
       return false;
     }
-
-    setState({ isLoading: false, error: null });
-    return true;
   }
 
-  /** Update password (while authenticated) */
-  async function updatePassword(newPassword: string) {
-    setState({ isLoading: true, error: null });
-
-    const { error } = await supabase.auth.updateUser({
-      password: newPassword,
-    });
-
-    if (error) {
-      setState({ isLoading: false, error: error.message });
-      return false;
-    }
-
-    setState({ isLoading: false, error: null });
-    return true;
-  }
-
-  /** Sign in with Google OAuth (redirects to Google) */
-  async function signInWithGoogle(redirectTo?: string) {
-    setState({ isLoading: true, error: null });
-
-    const { error } = await supabase.auth.signInWithOAuth({
-      provider: 'google',
-      options: {
-        redirectTo: redirectTo ?? `${window.location.origin}/auth/callback`,
-      },
-    });
-
-    if (error) {
-      setState({ isLoading: false, error: error.message });
-      return false;
-    }
-
-    // Browser redirects — loading stays true
-    return true;
-  }
-
-  /** Change password (verify old password first, then update) */
+  /** Change password (verify old password first) */
   async function changePassword(oldPassword: string, newPassword: string) {
     setState({ isLoading: true, error: null });
 
-    // Step 1: Verify old password by attempting sign-in
-    const { data: userData } = await supabase.auth.getUser();
-    if (!userData?.user?.email) {
-      setState({ isLoading: false, error: 'Sesi tidak valid. Silakan login ulang.' });
+    try {
+      const token = getCookie('access_token');
+      const res = await fetch(`${API_URL}/users/me/change-password`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify({ oldPassword, newPassword }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        setState({ isLoading: false, error: data.message ?? 'Gagal mengubah password' });
+        return false;
+      }
+
+      setState({ isLoading: false, error: null });
+      return true;
+    } catch {
+      setState({ isLoading: false, error: 'Terjadi kesalahan jaringan' });
       return false;
     }
-
-    const { error: verifyError } = await supabase.auth.signInWithPassword({
-      email: userData.user.email,
-      password: oldPassword,
-    });
-
-    if (verifyError) {
-      setState({ isLoading: false, error: 'Password lama salah' });
-      return false;
-    }
-
-    // Step 2: Update to new password
-    const { error: updateError } = await supabase.auth.updateUser({
-      password: newPassword,
-    });
-
-    if (updateError) {
-      setState({ isLoading: false, error: updateError.message });
-      return false;
-    }
-
-    setState({ isLoading: false, error: null });
-    return true;
   }
 
   return {
@@ -172,8 +156,13 @@ export function useAuth() {
     signIn,
     signOut,
     resetPassword,
-    updatePassword,
-    signInWithGoogle,
     changePassword,
   };
+}
+
+/** Helper to read cookie value */
+function getCookie(name: string): string | null {
+  if (typeof document === 'undefined') return null;
+  const match = document.cookie.match(new RegExp(`(^| )${name}=([^;]+)`));
+  return match ? match[2] : null;
 }

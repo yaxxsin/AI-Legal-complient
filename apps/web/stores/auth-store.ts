@@ -20,7 +20,7 @@ interface AuthStore {
   setLoading: (loading: boolean) => void;
 }
 
-/** Global auth state — synced with Supabase session */
+/** Global auth state — synced with JWT session */
 export const useAuthStore = create<AuthStore>((set) => ({
   user: null,
   isLoading: true,

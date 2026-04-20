@@ -7,13 +7,19 @@ import { AuthModule } from './modules/auth/auth.module';
 import { UsersModule } from './modules/users/users.module';
 import { BusinessProfilesModule } from './modules/business-profiles/business-profiles.module';
 import { SectorsModule } from './modules/sectors/sectors.module';
+import { DocumentsModule } from './modules/documents/documents.module';
 
 @Module({
   imports: [
     // Global config — reads from .env
     ConfigModule.forRoot({
       isGlobal: true,
-      envFilePath: ['.env.local', '.env'],
+      envFilePath: [
+        '../../.env.local',
+        '../../.env',
+        '.env.local',
+        '.env',
+      ],
     }),
 
     // Structured logging via Pino
@@ -38,6 +44,7 @@ import { SectorsModule } from './modules/sectors/sectors.module';
     UsersModule,
     BusinessProfilesModule,
     SectorsModule,
+    DocumentsModule,
   ],
 })
 export class AppModule {}

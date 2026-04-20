@@ -17,3 +17,6 @@
 
 ## 🔗 Decisions
 <!-- /log decision [deskripsi] -->
+
+## 📜 Log
+- [2026-04-20] Phase 12 complete: Document Generator CMS — 5 templates, Admin CRUD + editor, version control

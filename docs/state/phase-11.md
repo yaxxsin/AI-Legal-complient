@@ -10,7 +10,7 @@
 - [ ] Split view: form (kiri) + live preview (kanan)
 - [ ] Generate: Handlebars.js → DOCX (docx lib) + PDF (Puppeteer)
 - [ ] 3 template MVP: PKWT, PKWTT, NDA
-- [ ] File storage: Supabase Storage, auto-cleanup > 30 hari
+- [ ] File storage: MinIO (S3-compatible), auto-cleanup > 30 hari
 
 ## CONTEXT
 MOD-06 dari blueprint. Document template generator.

@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { createClient } from '@/lib/supabase/client';
 import { WizardProgress } from '@/components/onboarding/wizard-progress';
 import { WizardStep1 } from '@/components/onboarding/wizard-step-1';
 import { WizardStep2 } from '@/components/onboarding/wizard-step-2';
@@ -44,6 +43,13 @@ const INITIAL_DATA: WizardData = {
   npwp: '',
 };
 
+/** Helper to read cookie value */
+function getCookie(name: string): string | null {
+  if (typeof document === 'undefined') return null;
+  const match = document.cookie.match(new RegExp(`(^| )${name}=([^;]+)`));
+  return match ? match[2] : null;
+}
+
 export default function OnboardingPage() {
   const router = useRouter();
   const [currentStep, setCurrentStep] = useState(1);
@@ -52,24 +58,21 @@ export default function OnboardingPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState('');
 
-  const apiUrl = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000/api/v1';
+  const apiUrl = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001/api/v1';
 
-  /** Get auth headers */
-  async function getHeaders(): Promise<Record<string, string>> {
-    const supabase = createClient();
-    const { data: { session } } = await supabase.auth.getSession();
+  /** Get auth headers from JWT cookie */
+  function getHeaders(): Record<string, string> {
+    const token = getCookie('access_token');
     return {
       'Content-Type': 'application/json',
-      ...(session?.access_token
-        ? { Authorization: `Bearer ${session.access_token}` }
-        : {}),
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
     };
   }
 
   /** Create draft profile on first next click */
   async function createDraft(): Promise<string | null> {
     try {
-      const headers = await getHeaders();
+      const headers = getHeaders();
       const res = await fetch(`${apiUrl}/business-profiles`, {
         method: 'POST',
         headers,
@@ -116,7 +119,7 @@ export default function OnboardingPage() {
     };
 
     try {
-      const headers = await getHeaders();
+      const headers = getHeaders();
       await fetch(`${apiUrl}/business-profiles/${profileId}/step`, {
         method: 'PATCH',
         headers,
@@ -170,7 +173,7 @@ export default function OnboardingPage() {
       await saveStep(5);
 
       // Finalize profile
-      const headers = await getHeaders();
+      const headers = getHeaders();
       const res = await fetch(`${apiUrl}/business-profiles/${profileId}`, {
         method: 'PUT',
         headers,

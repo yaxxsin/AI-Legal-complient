@@ -1,8 +1,8 @@
 import { createParamDecorator, ExecutionContext } from '@nestjs/common';
 
 /**
- * Extract the authenticated Supabase user from the request.
- * Usage: @CurrentUser() user: SupabaseUser
+ * Extract the authenticated user from the request (set by JwtAuthGuard).
+ * Usage: @CurrentUser() user: { id: string; email: string; role: string }
  */
 export const CurrentUser = createParamDecorator(
   (_data: unknown, ctx: ExecutionContext) => {

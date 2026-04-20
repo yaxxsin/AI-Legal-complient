@@ -1,13 +1,17 @@
 'use client';
 
 import { useState } from 'react';
-import { useRouter } from 'next/navigation';
-import { createClient } from '@/lib/supabase/client';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { Suspense } from 'react';
 
+const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001/api/v1';
 const PASSWORD_REGEX = /^(?=.*[A-Z])(?=.*\d)/;
 
-export default function ResetPasswordPage() {
+function ResetPasswordForm() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const token = searchParams.get('token') ?? '';
+
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [error, setError] = useState('');
@@ -27,15 +31,21 @@ export default function ResetPasswordPage() {
       return;
     }
 
+    if (!token) {
+      setError('Token reset tidak ditemukan. Silakan minta link reset ulang.');
+      return;
+    }
+
     setIsLoading(true);
 
     try {
-      const supabase = createClient();
-      const { error: updateError } = await supabase.auth.updateUser({
-        password,
+      const res = await fetch(`${API_URL}/auth/reset-password`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ token, password }),
       });
 
-      if (updateError) {
+      if (!res.ok) {
         setError('Gagal mengubah password. Link mungkin sudah expired.');
         return;
       }
@@ -107,5 +117,13 @@ export default function ResetPasswordPage() {
         </button>
       </form>
     </div>
+  );
+}
+
+export default function ResetPasswordPage() {
+  return (
+    <Suspense fallback={<div className="animate-pulse text-center p-8">Loading...</div>}>
+      <ResetPasswordForm />
+    </Suspense>
   );
 }

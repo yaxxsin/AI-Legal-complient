@@ -13,7 +13,7 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
-import { SupabaseAuthGuard } from '../../common/guards/supabase-auth.guard';
+import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { BusinessProfilesService } from './business-profiles.service';
@@ -21,7 +21,7 @@ import { CreateBusinessProfileDto, UpdateBusinessProfileDto, UpdateStepDto } fro
 
 @ApiTags('business-profiles')
 @ApiBearerAuth()
-@UseGuards(SupabaseAuthGuard, RolesGuard)
+@UseGuards(JwtAuthGuard, RolesGuard)
 @Controller('business-profiles')
 export class BusinessProfilesController {
   constructor(private readonly service: BusinessProfilesService) {}

@@ -66,27 +66,26 @@ Platform all-in-one yang memberikan:
 ### 2.2 Backend
 - **Runtime**: Node.js 20 LTS
 - **Framework**: NestJS (modular architecture)
-- **Database**: PostgreSQL (via Supabase)
+- **Database**: PostgreSQL 16 (Docker container)
 - **ORM**: Prisma
-- **Queue**: BullMQ + Redis (background jobs)
+- **Queue**: BullMQ + Redis 7 (Docker container)
 - **Logger**: Pino
 - **API Docs**: Swagger/OpenAPI
 
 ### 2.3 AI & Data
-- **LLM**: Anthropic Claude API (claude-sonnet-4-20250514)
+- **LLM**: Ollama (Qwen 2.5, local inference)
 - **Embedding**: OpenAI text-embedding-3-small
 - **Vector DB**: Pinecone (1 index, namespace per document_type)
 - **RAG**: LangChain TextSplitter (chunk_size=700, overlap=100)
 
 ### 2.4 Infrastructure
-- **Auth**: Supabase Auth (email + Google SSO + Magic Link)
-- **Storage**: Supabase Storage (documents, images)
-- **Hosting Frontend**: Vercel
-- **Hosting Backend**: Railway
+- **Auth**: Custom JWT (passport-jwt + bcryptjs, httpOnly cookie)
+- **Storage**: MinIO (S3-compatible, self-hosted via Docker)
+- **Containerization**: Docker Compose (PostgreSQL + Redis + MinIO + API + Web)
 - **Email**: Resend (transactional email)
 - **Payment**: Midtrans (VA, e-wallet, kartu kredit, retail)
 - **Monitoring**: Sentry (error tracking) + Datadog (APM)
-- **CI/CD**: GitHub Actions → Vercel + Railway
+- **CI/CD**: GitHub Actions → Docker build + push
 
 ---
 
@@ -458,11 +457,11 @@ Auth Header: Authorization: Bearer <access_token>
 
 | Komponen | Teknologi | Detail |
 |----------|-----------|--------|
-| Auth Provider | Supabase Auth | Built-in user management, JWT, RLS (Row Level Security) |
+| Auth Provider | Custom JWT (jsonwebtoken + passport-jwt) | Self-managed user auth, JWT access + refresh tokens |
 | Session Storage | httpOnly Cookie | Lebih aman dari localStorage, XSS-resistant |
-| Social Login | Google OAuth 2.0 | Via Supabase provider, one-click login |
-| Password Hashing | bcrypt (via Supabase) | Automatic, salt rounds = 12 |
-| Token Expiry | Access: 1 jam, Refresh: 7 hari | Auto-refresh pada setiap request |
+| Social Login | Deferred (Phase 2) | Google OAuth akan ditambahkan di fase lanjutan |
+| Password Hashing | bcryptjs | Manual hashing, salt rounds = 12 |
+| Token Expiry | Access: 1 jam, Refresh: 30 hari | Auto-refresh pada setiap request |
 | Email Provider | Resend | Transaksional: verifikasi, reset password, welcome email |
 
 ### 4.2 MOD-01: Authentication & User Management
@@ -737,8 +736,8 @@ localcompliance/
 - Logout → revoke refresh token
 - Max 3 device/session aktif bersamaan
 
-#### F-01-03: Google SSO (MUST HAVE)
-- Login/register via Google OAuth 2.0 (Supabase Auth)
+#### F-01-03: Google SSO (DEFERRED — Phase 2)
+- Login/register via Google OAuth 2.0 (passport-google-oauth20) — ditunda ke Phase 2
 - User baru via Google → otomatis verified, langsung ke onboarding
 - User existing → merge ke akun yang sama by email
 
@@ -882,7 +881,7 @@ localcompliance/
 - Split view: kiri form, kanan live preview
 - Output: `.docx` + `.pdf` (download)
 - Rendering: Handlebars.js, DOCX via `docx`/`html-docx-js`, PDF via Puppeteer
-- File storage: Supabase Storage, auto-cleanup > 30 hari
+- File storage: MinIO (S3-compatible, self-hosted), auto-cleanup > 30 hari
 - Limit: Free = 2/bulan, Starter = 10/bulan, Growth+ = unlimited
 
 #### F-06-02: Template Content Management (MUST HAVE)
@@ -1001,7 +1000,7 @@ localcompliance/
 #### Technical Notes:
 - Extend tabel `users` dengan `team_id` FK
 - Buat tabel `teams`, `team_members`, `team_invitations`
-- RLS policies di Supabase harus di-update untuk team-scoped access
+- Prisma middleware + auth guards harus di-update untuk team-scoped access
 - Invitation flow: email invite → accept → join team
 
 ---
@@ -1034,7 +1033,7 @@ localcompliance/
 - **Audit-Ready Export**: Export semua bukti compliance sebagai ZIP untuk audit
 
 #### Technical Notes:
-- Supabase Storage bucket: `evidence/{business_profile_id}/{compliance_item_id}/`
+- MinIO bucket: `evidence/{business_profile_id}/{compliance_item_id}/`
 - File limit: max 10MB per file, max 5 files per compliance item
 - Metadata: `file_name`, `file_type`, `uploaded_at`, `expires_at`
 - Auto-cleanup: file yang sudah tidak terkait item aktif → archive setelah 90 hari
@@ -1045,15 +1044,15 @@ localcompliance/
 
 ### Sprint 0: Foundation (Minggu 1-2) — 29 SP
 - [ ] Setup GitHub repo, branch strategy, PR template (3 SP)
-- [ ] Setup Supabase: auth, database, storage, RLS policies (5 SP)
+- [ ] Setup Docker Compose: PostgreSQL + Redis + MinIO + API + Web (5 SP)
 - [ ] Setup Next.js: routing, middleware, env vars, ESLint, Prettier, Husky (3 SP)
-- [ ] Setup NestJS API: modules, Supabase client, Pino logger, Swagger (5 SP)
+- [ ] Setup NestJS API: modules, Prisma, JWT auth, Pino logger, Swagger (5 SP)
 - [ ] Setup Pinecone index & embedding pipeline (test 10 docs) (5 SP)
 - [ ] Design system: color tokens, typography, shadcn/ui, Figma (5 SP)
-- [ ] Setup CI/CD: GitHub Actions → Vercel + Railway (3 SP)
+- [ ] Setup CI/CD: GitHub Actions → Docker build + push (3 SP)
 
 ### Sprint 1: Auth & Onboarding (Minggu 3-4) — 35 SP
-- [ ] F-01-01: Registrasi email + verifikasi (Supabase + Resend) (5 SP)
+- [ ] F-01-01: Registrasi email + verifikasi (Custom JWT + Resend) (5 SP)
 - [ ] F-01-02: Login + logout + session management (3 SP)
 - [ ] F-01-03: Google SSO (3 SP)
 - [ ] F-01-04: Reset password flow (3 SP)
@@ -1137,7 +1136,7 @@ localcompliance/
 
 ### 9.2 Security
 - JWT di httpOnly cookie (bukan localStorage)
-- Supabase RLS (Row Level Security) di semua tabel
+- Prisma middleware + NestJS guards untuk row-level access control
 - Rate limiting: per IP dan per user
 - Input sanitization: semua input di-sanitize sebelum DB query
 - PII detection layer pada chat (jangan simpan data sensitif)
@@ -1151,10 +1150,10 @@ localcompliance/
 - Idempotency: semua webhook endpoint dan payment processing
 
 ### 9.4 Scalability
-- Stateless backend → horizontal scaling di Railway
+- Stateless backend → horizontal scaling via Docker Swarm/K8s
 - Background jobs via BullMQ + Redis (decoupled dari API)
-- CDN via Vercel Edge Network (frontend)
-- Database connection pooling via Supabase
+- Nginx reverse proxy + CDN untuk frontend
+- Database connection pooling via PgBouncer (Docker sidecar)
 
 ### 9.5 Observability
 - **Error Tracking**: Sentry (frontend + backend)

@@ -38,7 +38,7 @@ export class AuthController {
 
   @Post('logout')
   @HttpCode(HttpStatus.NO_CONTENT)
-  @ApiOperation({ summary: 'Logout — revoke session' })
+  @ApiOperation({ summary: 'Logout — clear session' })
   async logout(
     @Headers('authorization') authHeader: string,
   ): Promise<void> {
@@ -59,46 +59,31 @@ export class AuthController {
   @Post('reset-password')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Set new password with reset token' })
-  async resetPassword(
-    @Body() dto: ResetPasswordDto,
-    @Headers('authorization') authHeader: string,
-  ) {
-    const token = authHeader?.replace('Bearer ', '');
-    if (!token) {
-      return { message: 'Token tidak valid' };
-    }
-    await this.authService.resetPassword(token, dto.password);
+  async resetPassword(@Body() dto: ResetPasswordDto) {
+    // Token comes from request body (sent from frontend reset form)
+    await this.authService.resetPassword(dto.token, dto.password);
     return { message: 'Password berhasil diubah' };
+  }
+
+  @Post('refresh')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Refresh access token' })
+  async refreshToken(
+    @Body('refreshToken') refreshToken: string,
+  ) {
+    return this.authService.refreshToken(refreshToken);
   }
 
   @Get('verify-email')
   @ApiOperation({ summary: 'Verify email — redirect from email link' })
   async verifyEmail(
     @Query('token') token: string,
-    @Query('type') type: string,
     @Res() res: Response,
   ): Promise<void> {
     const frontendUrl = this.config.get('CORS_ORIGIN', 'http://localhost:3000');
 
-    if (type === 'signup' || type === 'email') {
-      // Supabase already verified the email when user clicked the link
-      // Redirect to frontend callback to exchange code for session
-      res.redirect(`${frontendUrl}/auth/callback?token=${token}&type=${type}`);
-    } else {
-      res.redirect(`${frontendUrl}/login?verified=true`);
-    }
-  }
-
-  @Post('google')
-  @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Sync Google SSO user to our database' })
-  async loginWithGoogle(
-    @Headers('authorization') authHeader: string,
-  ) {
-    const token = authHeader?.replace('Bearer ', '');
-    if (!token) {
-      return { success: false, error: 'Token required' };
-    }
-    return this.authService.loginWithGoogle(token);
+    // TODO: Verify token and mark user.emailVerified = true
+    // For now, redirect to login
+    res.redirect(`${frontendUrl}/login?verified=true`);
   }
 }

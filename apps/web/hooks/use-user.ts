@@ -1,9 +1,10 @@
 'use client';
 
 import { useQuery } from '@tanstack/react-query';
-import { createClient } from '@/lib/supabase/client';
 import { useAuthStore } from '@/stores/auth-store';
 import { useEffect } from 'react';
+
+const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001/api/v1';
 
 interface UserProfile {
   id: string;
@@ -19,19 +20,19 @@ interface UserProfile {
   createdAt: string;
 }
 
+/** Helper to read cookie value */
+function getCookie(name: string): string | null {
+  if (typeof document === 'undefined') return null;
+  const match = document.cookie.match(new RegExp(`(^| )${name}=([^;]+)`));
+  return match ? match[2] : null;
+}
+
 async function fetchCurrentUser(): Promise<UserProfile | null> {
-  const supabase = createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  const token = getCookie('access_token');
+  if (!token) return null;
 
-  if (!user) return null;
-
-  const apiUrl = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001/api/v1';
-  const { data: { session } } = await supabase.auth.getSession();
-
-  if (!session) return null;
-
-  const response = await fetch(`${apiUrl}/users/me`, {
-    headers: { Authorization: `Bearer ${session.access_token}` },
+  const response = await fetch(`${API_URL}/users/me`, {
+    headers: { Authorization: `Bearer ${token}` },
   });
 
   if (!response.ok) return null;

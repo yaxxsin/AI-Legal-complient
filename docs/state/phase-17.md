@@ -8,7 +8,7 @@
 - [ ] E2E testing: Playwright (register → onboarding → chat → checklist → doc → billing)
 - [ ] Unit tests: Jest + Vitest (>70% backend coverage)
 - [ ] Integration tests: API endpoints (Supertest)
-- [ ] Production deployment: Vercel (frontend) + Railway (backend)
+- [ ] Production deployment: Docker Compose (API + Web + PostgreSQL + Redis + MinIO)
 - [ ] Monitoring: Sentry (error tracking) + Datadog (APM)
 - [ ] Security audit: OWASP ZAP scan
 - [ ] Landing page final polish

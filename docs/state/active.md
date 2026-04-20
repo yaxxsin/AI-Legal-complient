@@ -4,10 +4,10 @@
 > Menunjuk ke phase state yang sedang aktif.
 
 ## ACTIVE
-- **Phase**: 3: Onboarding Wizard (✅ Complete)
-- **State File**: phase-03.md
+- **Phase**: 13: Regulatory Alerts & Notifications (⬜ Not Started)
+- **State File**: phase-13.md
 - **Developer**: Engine AI
-- **Since**: 2026-04-17
+- **Since**: 2026-04-20
 
 ## PHASE INDEX
 
@@ -19,15 +19,15 @@
 | 1 | Auth — Registration & Login | phase-01.md | ✅ | S | Phase 0 |
 | 2 | Auth — Google SSO & RBAC | phase-02.md | ✅ | S | Phase 1 |
 | 3 | Onboarding Wizard | phase-03.md | ✅ | S | Phase 1 |
-| 4 | Master Data Sektor | phase-04.md | ⬜ | XS | Phase 0 |
-| 5 | RAG Pipeline & Knowledge Base | phase-05.md | ⬜ | S | Phase 0 |
-| 6 | ComplianceBot API | phase-06.md | ⬜ | S | Phase 5 |
-| 7 | ComplianceBot Chat UI | phase-07.md | ⬜ | S | Phase 6 |
-| 8 | Compliance Checklist Engine | phase-08.md | ⬜ | S | Phase 3 |
-| 9 | Checklist UI & Status Update | phase-09.md | ⬜ | S | Phase 8 |
-| 10 | Compliance Score Dashboard | phase-10.md | ⬜ | S | Phase 8 |
-| 11 | Document Generator — 3 Templates | phase-11.md | ⬜ | S | Phase 3 |
-| 12 | Document Generator — Complete + CMS | phase-12.md | ⬜ | S | Phase 11 |
+| 4 | Master Data Sektor | phase-04.md | ✅ | XS | Phase 0 |
+| 5 | RAG Pipeline & Knowledge Base | phase-05.md | ✅ | S | Phase 0 |
+| 6 | ComplianceBot API | phase-06.md | ✅ | S | Phase 5 |
+| 7 | ComplianceBot Chat UI | phase-07.md | ✅ | S | Phase 6 |
+| 8 | Compliance Checklist Engine | phase-08.md | ✅ | S | Phase 3 |
+| 9 | Checklist UI & Status Update | phase-09.md | ✅ | S | Phase 8 |
+| 10 | Compliance Score Dashboard | phase-10.md | ✅ | S | Phase 8 |
+| 11 | Document Generator — 3 Templates | phase-11.md | ✅ | S | Phase 3 |
+| 12 | Document Generator — Complete + CMS | phase-12.md | ✅ | S | Phase 11 |
 | 13 | Regulatory Alerts & Notifications | phase-13.md | ⬜ | S | Phase 5 |
 | 14 | Knowledge Base & FAQ | phase-14.md | ⬜ | S | Phase 0 |
 | 15 | Subscription & Billing | phase-15.md | ⬜ | M | Phase 2 |
@@ -76,7 +76,7 @@ Phase 17 (Deploy) ← depends on ALL previous MVP phases
 - **Locked**: No
 - **By**: -
 - **Since**: -
-- **Last Snap**: 2026-04-17T11:44 (phase-03 complete)
+- **Last Snap**: 2026-04-20T16:41 (infra migration: Supabase → Docker/JWT complete)
 
 ---
 
