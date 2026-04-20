@@ -73,7 +73,7 @@ Platform all-in-one yang memberikan:
 - **API Docs**: Swagger/OpenAPI
 
 ### 2.3 AI & Data
-- **LLM**: Anthropic Claude API (claude-sonnet-4-20250514)
+- **LLM**: Ollama (Qwen 2.5) — local/self-hosted inference
 - **Embedding**: OpenAI text-embedding-3-small
 - **Vector DB**: Pinecone (1 index, namespace per document_type)
 - **RAG**: LangChain TextSplitter (chunk_size=700, overlap=100)
@@ -627,7 +627,7 @@ Auth Header: Authorization: Bearer <access_token>
 | `PLAN_LIMIT_REACHED` | Sudah mencapai batas plan |
 | `FEATURE_NOT_AVAILABLE` | Fitur tidak tersedia di plan saat ini |
 | `RATE_LIMIT_EXCEEDED` | Terlalu banyak request |
-| `AI_SERVICE_UNAVAILABLE` | Claude API sedang tidak tersedia |
+| `AI_SERVICE_UNAVAILABLE` | Ollama/Qwen service sedang tidak tersedia |
 | `PAYMENT_FAILED` | Proses pembayaran gagal |
 
 ---
@@ -1064,7 +1064,7 @@ localcompliance/
 
 ### Sprint 2: ComplianceBot AI (Minggu 5-6) — 32 SP
 - [ ] RAG pipeline: embedding + Pinecone upsert + semantic search (8 SP)
-- [ ] ComplianceBot API: conversation CRUD + Claude + streaming (8 SP)
+- [ ] ComplianceBot API: conversation CRUD + Ollama/Qwen + streaming (8 SP)
 - [ ] Chat UI: sidebar + chat bubbles + streaming display (8 SP)
 - [ ] Ingest KB regulasi MVP (6 regulasi prioritas) (5 SP)
 - [ ] F-03-03: Suggested questions engine (3 SP)

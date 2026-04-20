@@ -13,7 +13,7 @@
 - [2026-04-17] Project initialized via /init (Mode A: New Project + Blueprint)
 - [2026-04-17] 22 phases auto-decomposed from master_blueprint.md
 - [2026-04-17] Preset loaded: nextjs.md
-- [2026-04-17] Stack: Next.js 14 + NestJS + Supabase + Prisma + Claude AI + Pinecone
+- [2026-04-17] Stack: Next.js 14 + NestJS + Supabase + Prisma + Ollama/Qwen + Pinecone
 
 ## 🔗 Decisions
 <!-- /log decision [deskripsi] -->

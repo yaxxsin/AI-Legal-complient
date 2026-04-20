@@ -10,7 +10,7 @@ Platform SaaS yang membantu UMKM dan startup Indonesia memahami dan memenuhi kew
 |-------|-----------|
 | **Frontend** | Next.js 14 (App Router), Tailwind CSS, shadcn/ui, Zustand, TanStack Query |
 | **Backend** | NestJS, Prisma ORM, PostgreSQL (Supabase) |
-| **AI** | Anthropic Claude, OpenAI Embeddings, Pinecone |
+| **AI** | Ollama (Qwen 2.5), OpenAI Embeddings, Pinecone |
 | **Infra** | Vercel (web), Railway (api), Supabase (auth + DB + storage) |
 | **CI/CD** | GitHub Actions |
 

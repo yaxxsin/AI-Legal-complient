@@ -9,6 +9,7 @@ import { BusinessProfilesModule } from './modules/business-profiles/business-pro
 import { SectorsModule } from './modules/sectors/sectors.module';
 import { RagModule } from './modules/rag/rag.module';
 import { RegulationsModule } from './modules/regulations/regulations.module';
+import { ChatModule } from './modules/chat/chat.module';
 
 @Module({
   imports: [
@@ -42,6 +43,7 @@ import { RegulationsModule } from './modules/regulations/regulations.module';
     SectorsModule,
     RagModule,
     RegulationsModule,
+    ChatModule,
   ],
 })
 export class AppModule {}
