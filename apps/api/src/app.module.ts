@@ -16,7 +16,12 @@ import { ChatModule } from './modules/chat/chat.module';
     // Global config — reads from .env
     ConfigModule.forRoot({
       isGlobal: true,
-      envFilePath: ['.env.local', '.env'],
+      envFilePath: [
+        '../../.env.local',
+        '../../.env',
+        '.env.local',
+        '.env',
+      ],
     }),
 
     // Structured logging via Pino

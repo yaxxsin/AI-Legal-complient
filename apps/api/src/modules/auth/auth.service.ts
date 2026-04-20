@@ -13,16 +13,32 @@ import { RegisterDto, LoginDto } from './dto';
 @Injectable()
 export class AuthService {
   private readonly logger = new Logger(AuthService.name);
-  private readonly supabase: SupabaseClient;
+  private readonly supabase: SupabaseClient | null;
+  private readonly isConfigured: boolean;
 
   constructor(
     private readonly prisma: PrismaService,
     private readonly config: ConfigService,
   ) {
-    this.supabase = createClient(
-      this.config.getOrThrow<string>('SUPABASE_URL'),
-      this.config.getOrThrow<string>('SUPABASE_SERVICE_ROLE_KEY'),
-    );
+    const url = this.config.get<string>('SUPABASE_URL', '');
+    const key = this.config.get<string>('SUPABASE_SERVICE_ROLE_KEY', '');
+
+    if (!url || url.includes('your-project') || !key || key === 'your-service-role-key') {
+      this.logger.warn('⚠️ Supabase not configured — Auth features will use mock mode');
+      this.supabase = null;
+      this.isConfigured = false;
+    } else {
+      this.supabase = createClient(url, key);
+      this.isConfigured = true;
+    }
+  }
+
+  /** Guard helper: throw if Supabase not configured */
+  private requireSupabase(): SupabaseClient {
+    if (!this.supabase) {
+      throw new BadRequestException('Supabase belum dikonfigurasi. Cek SUPABASE_URL dan SUPABASE_SERVICE_ROLE_KEY.');
+    }
+    return this.supabase;
   }
 
   /** Register new user via email + password */
@@ -40,7 +56,8 @@ export class AuthService {
     }
 
     // Create Supabase auth user
-    const { data: authData, error: authError } = await this.supabase.auth.admin.createUser({
+    const sb = this.requireSupabase();
+    const { data: authData, error: authError } = await sb.auth.admin.createUser({
       email: dto.email,
       password: dto.password,
       email_confirm: false,
@@ -68,7 +85,7 @@ export class AuthService {
     });
 
     // Send verification email via Supabase (resend OTP link)
-    await this.supabase.auth.resend({
+    await sb.auth.resend({
       type: 'signup',
       email: dto.email,
     });
@@ -79,7 +96,8 @@ export class AuthService {
 
   /** Login with email + password */
   async login(dto: LoginDto) {
-    const { data, error } = await this.supabase.auth.signInWithPassword({
+    const sb = this.requireSupabase();
+    const { data, error } = await sb.auth.signInWithPassword({
       email: dto.email,
       password: dto.password,
     });
@@ -110,7 +128,8 @@ export class AuthService {
 
   /** Logout — revoke session (requires user's access token) */
   async logout(accessToken: string): Promise<void> {
-    const { error } = await this.supabase.auth.admin.signOut(accessToken);
+    const sb = this.requireSupabase();
+    const { error } = await sb.auth.admin.signOut(accessToken);
 
     if (error) {
       this.logger.warn(`Logout error: ${error.message}`);
@@ -122,7 +141,8 @@ export class AuthService {
   async forgotPassword(email: string): Promise<void> {
     const redirectTo = `${this.config.get('CORS_ORIGIN', 'http://localhost:3000')}/reset-password`;
 
-    const { error } = await this.supabase.auth.resetPasswordForEmail(email, {
+    const sb = this.requireSupabase();
+    const { error } = await sb.auth.resetPasswordForEmail(email, {
       redirectTo,
     });
 
@@ -138,8 +158,8 @@ export class AuthService {
   async resetPassword(accessToken: string, newPassword: string): Promise<void> {
     // Create a client with the user's access token
     const userClient = createClient(
-      this.config.getOrThrow<string>('SUPABASE_URL'),
-      this.config.getOrThrow<string>('NEXT_PUBLIC_SUPABASE_ANON_KEY'),
+      this.config.get<string>('SUPABASE_URL', ''),
+      this.config.get<string>('NEXT_PUBLIC_SUPABASE_ANON_KEY', ''),
       {
         global: { headers: { Authorization: `Bearer ${accessToken}` } },
       },
@@ -159,7 +179,8 @@ export class AuthService {
 
   /** Sync Supabase auth user to our users table (used by webhook/callback) */
   async syncUser(supabaseUserId: string): Promise<void> {
-    const { data } = await this.supabase.auth.admin.getUserById(supabaseUserId);
+    const sb = this.requireSupabase();
+    const { data } = await sb.auth.admin.getUserById(supabaseUserId);
 
     if (!data?.user) return;
 
@@ -183,7 +204,8 @@ export class AuthService {
   /** Login/register via Google OAuth — called after Supabase OAuth callback */
   async loginWithGoogle(accessToken: string) {
     // Verify the token and get user from Supabase
-    const { data, error } = await this.supabase.auth.getUser(accessToken);
+    const sb = this.requireSupabase();
+    const { data, error } = await sb.auth.getUser(accessToken);
 
     if (error || !data.user) {
       throw new UnauthorizedException({

@@ -12,7 +12,7 @@ export async function middleware(request: NextRequest) {
   const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? '';
 
   // Skip auth middleware if Supabase is not configured
-  if (!supabaseUrl || !supabaseKey || supabaseUrl.includes('placeholder')) {
+  if (!supabaseUrl || !supabaseKey || supabaseUrl.includes('placeholder') || supabaseUrl.includes('your-project')) {
     return response;
   }
 

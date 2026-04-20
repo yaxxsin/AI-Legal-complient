@@ -12,16 +12,28 @@ import { UpdateUserDto } from './dto/update-user.dto';
 @Injectable()
 export class UsersService {
   private readonly logger = new Logger(UsersService.name);
-  private readonly supabase: SupabaseClient;
+  private readonly supabase: SupabaseClient | null;
 
   constructor(
     private readonly prisma: PrismaService,
     private readonly config: ConfigService,
   ) {
-    this.supabase = createClient(
-      this.config.getOrThrow<string>('SUPABASE_URL'),
-      this.config.getOrThrow<string>('SUPABASE_SERVICE_ROLE_KEY'),
-    );
+    const url = this.config.get<string>('SUPABASE_URL', '');
+    const key = this.config.get<string>('SUPABASE_SERVICE_ROLE_KEY', '');
+
+    if (!url || url.includes('your-project') || !key || key === 'your-service-role-key') {
+      this.supabase = null;
+    } else {
+      this.supabase = createClient(url, key);
+    }
+  }
+
+  /** Guard helper */
+  private requireSupabase(): SupabaseClient {
+    if (!this.supabase) {
+      throw new BadRequestException('Supabase belum dikonfigurasi.');
+    }
+    return this.supabase;
   }
 
   /** Find user by Supabase auth ID */
@@ -98,8 +110,9 @@ export class UsersService {
     }
 
     // Verify old password via Supabase sign-in
+    const sb = this.requireSupabase();
     const { error: verifyError } =
-      await this.supabase.auth.signInWithPassword({
+      await sb.auth.signInWithPassword({
         email: user.email,
         password: oldPassword,
       });
@@ -113,7 +126,7 @@ export class UsersService {
 
     // Update password via admin API
     const { error: updateError } =
-      await this.supabase.auth.admin.updateUserById(userId, {
+      await sb.auth.admin.updateUserById(userId, {
         password: newPassword,
       });
 
@@ -131,7 +144,8 @@ export class UsersService {
     await this.findById(userId);
 
     // For MVP: disable Supabase auth user (ban)
-    const { error } = await this.supabase.auth.admin.updateUserById(
+    const sb = this.requireSupabase();
+    const { error } = await sb.auth.admin.updateUserById(
       userId,
       { ban_duration: '876000h' }, // ~100 years = effectively disabled
     );

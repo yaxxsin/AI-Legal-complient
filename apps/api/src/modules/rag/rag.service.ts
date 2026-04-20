@@ -26,7 +26,7 @@ export class RagService {
 
   constructor(
     @Inject(PINECONE_CLIENT)
-    private readonly pinecone: Pinecone,
+    private readonly pinecone: Pinecone | null,
     private readonly config: ConfigService,
   ) {
     this.openai = new OpenAI({
@@ -63,6 +63,8 @@ export class RagService {
     namespace = 'peraturan',
   ): Promise<ChunkResult[]> {
     const index = this.getIndex();
+    if (!index) return [];
+
     const results: ChunkResult[] = [];
 
     // Process in batches of 10
@@ -113,8 +115,14 @@ export class RagService {
     namespace = 'peraturan',
     filter?: Record<string, unknown>,
   ): Promise<QueryResult[]> {
+    if (!this.pinecone) {
+      this.logger.warn('Pinecone not configured — returning empty results');
+      return [];
+    }
+
     const embedding = await this.generateEmbedding(query);
     const index = this.getIndex();
+    if (!index) return [];
 
     const result = await index.namespace(namespace).query({
       vector: embedding,
@@ -137,6 +145,7 @@ export class RagService {
   ): Promise<void> {
     try {
       const index = this.getIndex();
+      if (!index) return;
       await index.namespace(namespace).deleteMany({
         filter: { regulationId: { $eq: regulationId } },
       });
@@ -149,7 +158,8 @@ export class RagService {
   }
 
   /** Get Pinecone index handle */
-  private getIndex(): Index {
+  private getIndex(): Index | null {
+    if (!this.pinecone) return null;
     return this.pinecone.index(this.indexName);
   }
 }

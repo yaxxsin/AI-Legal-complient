@@ -34,6 +34,7 @@ localcompliance/
 
 - Node.js ≥ 20
 - pnpm ≥ 9
+- Ollama running locally (for AI chat)
 - Supabase project (for auth & database)
 
 ### Setup
@@ -53,8 +54,16 @@ pnpm db:push
 
 # Seed initial data
 pnpm db:seed
+```
 
-# Start development
+### Run Development
+
+```bash
+# Start Ollama (in separate terminal)
+ollama serve
+ollama pull qwen2.5
+
+# Start all apps
 pnpm dev
 ```
 
@@ -62,6 +71,14 @@ This starts:
 - **Frontend**: http://localhost:3000
 - **Backend API**: http://localhost:3001/api/v1
 - **Swagger Docs**: http://localhost:3001/api/docs
+
+### Test ComplianceBot Chat
+
+1. Register/login at http://localhost:3000
+2. Navigate to http://localhost:3000/chat
+3. Start a conversation with the AI assistant
+
+> **Note**: If using Supabase self-hosted or placeholder credentials, the API will return mock data.
 
 ## 📜 Available Scripts
 
