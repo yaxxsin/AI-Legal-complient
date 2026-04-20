@@ -10,6 +10,7 @@ import { SectorsModule } from './modules/sectors/sectors.module';
 import { RagModule } from './modules/rag/rag.module';
 import { RegulationsModule } from './modules/regulations/regulations.module';
 import { ChatModule } from './modules/chat/chat.module';
+import { ComplianceModule } from './modules/compliance/compliance.module';
 
 @Module({
   imports: [
@@ -49,6 +50,7 @@ import { ChatModule } from './modules/chat/chat.module';
     RagModule,
     RegulationsModule,
     ChatModule,
+    ComplianceModule,
   ],
 })
 export class AppModule {}
