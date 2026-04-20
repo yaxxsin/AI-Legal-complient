@@ -4,8 +4,8 @@
 > Menunjuk ke phase state yang sedang aktif.
 
 ## ACTIVE
-- **Phase**: 11: Document Generator — 3 Templates (⬜ Not Started)
-- **State File**: phase-11.md
+- **Phase**: 12: Document Generator — Complete + CMS (⬜ Not Started)
+- **State File**: phase-12.md
 - **Developer**: Engine AI
 - **Since**: 2026-04-20
 
@@ -26,7 +26,7 @@
 | 8 | Compliance Checklist Engine | phase-08.md | ✅ | S | Phase 3 |
 | 9 | Checklist UI & Status Update | phase-09.md | ✅ | S | Phase 8 |
 | 10 | Compliance Score Dashboard | phase-10.md | ✅ | S | Phase 8 |
-| 11 | Document Generator — 3 Templates | phase-11.md | ⬜ | S | Phase 3 |
+| 11 | Document Generator — 3 Templates | phase-11.md | ✅ | S | Phase 3 |
 | 12 | Document Generator — Complete + CMS | phase-12.md | ⬜ | S | Phase 11 |
 | 13 | Regulatory Alerts & Notifications | phase-13.md | ⬜ | S | Phase 5 |
 | 14 | Knowledge Base & FAQ | phase-14.md | ⬜ | S | Phase 0 |
