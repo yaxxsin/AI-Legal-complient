@@ -76,7 +76,7 @@ Phase 17 (Deploy) ← depends on ALL previous MVP phases
 - **Locked**: No
 - **By**: -
 - **Since**: -
-- **Last Snap**: 2026-04-20T16:41 (infra migration: Supabase → Docker/JWT complete)
+- **Last Snap**: 2026-04-20T16:44 (manual snap — infra migration committed c6d8ce7)
 
 ---
 

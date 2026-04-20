@@ -1,6 +1,6 @@
 'use client';
 
-import { Bell } from 'lucide-react';
+import { NotificationCenter } from '@/components/notifications/notification-center';
 
 export function Topbar() {
   return (
@@ -20,15 +20,7 @@ export function Topbar() {
 
       {/* Right: notifications + avatar */}
       <div className="flex items-center gap-3">
-        <button
-          type="button"
-          className="relative p-2 rounded-lg hover:bg-muted/50 transition-colors"
-          aria-label="Notifications"
-        >
-          <Bell className="w-5 h-5 text-muted-foreground" />
-          {/* Badge placeholder */}
-          <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-destructive" />
-        </button>
+        <NotificationCenter />
 
         <button
           type="button"

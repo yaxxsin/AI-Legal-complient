@@ -16,29 +16,43 @@ Role-Based Access Control: user | admin | super_admin.
 Plan-based gating: free | starter | growth | business.
 Auth: Custom JWT (bcryptjs + jsonwebtoken).
 
+**INFRA MIGRATION COMPLETED** (2026-04-20):
+- Supabase Auth → Custom JWT (bcryptjs + jsonwebtoken + httpOnly cookies)
+- Supabase DB → PostgreSQL 16 (Docker)
+- Supabase Storage → MinIO (S3-compatible, Docker)
+- Vercel/Railway → Docker Compose full stack
+- All controllers, guards, hooks, pages migrated
+- 0 type errors on both API and Web
+- Committed: c6d8ce7 → origin/feature/phase-12-doc-cms
+
 Blueprint ref: BAB 6 MOD-01 (F-01-05, F-01-06)
 
-## NOW: ✅ Phase 02 COMPLETE (RBAC)
-## NEXT: Phase 03 (Onboarding Wizard)
-## CRUMBS:
-- apps/api/src/common/enums/user-role.enum.ts (UserRole, UserPlan enums)
-- apps/api/src/common/decorators/plan.decorator.ts (@RequirePlan)
-- apps/api/src/common/guards/plan.guard.ts (PlanGuard)
-- apps/api/src/common/guards/roles.guard.ts (attach dbUser to req)
-- apps/api/src/common/guards/jwt-auth.guard.ts (JWT verification)
-- apps/api/src/modules/auth/auth.service.ts (Custom JWT auth)
-- apps/api/src/modules/auth/auth.controller.ts (register, login, reset)
-- apps/api/src/modules/users/users.service.ts (bcrypt changePassword)
-- apps/api/src/modules/users/users.controller.ts (change-password, delete)
-- apps/web/app/(auth)/login/page.tsx (email + password only)
-- apps/web/app/(auth)/register/page.tsx
-- apps/web/hooks/use-auth.ts (API-based auth, no Supabase)
-- apps/web/hooks/use-user.ts (JWT from cookie)
-- apps/web/app/(dashboard)/settings/page.tsx (Profile, Security, Account)
+## NOW: ✅ Infra migration COMPLETE — ready for next phase
+## NEXT:
+1. Run `npx prisma db push` to apply passwordHash column to live DB
+2. Test full auth flow: Register → Login → Protected route → Refresh token
+3. Continue to Phase 13 (Regulatory Alerts & Notifications)
 
 ## DON'T:
 - JANGAN import `useUser` → export name is `useCurrentUser`
 - JANGAN lupa `!` definite assignment on DTO properties (strict mode)
 - JANGAN import from 'supabase-auth.guard' → use 'jwt-auth.guard'
+- JANGAN pakai `@supabase/supabase-js` atau `@supabase/ssr` — sudah dihapus
+- JANGAN pakai `createClient()` dari `@/lib/supabase/client` — sudah stub error
+- JWT expiresIn HARUS numeric (seconds), bukan string — jsonwebtoken v9 strict types
 
-## CHECKPOINT: 2026-04-20T16:32 — infra migration (Supabase → Docker)
+## CRUMBS:
+- apps/api/src/modules/auth/ (module, controller, service, 4 DTOs)
+- apps/api/src/modules/users/ (module, controller, service, 1 DTO)
+- apps/api/src/common/guards/jwt-auth.guard.ts (NEW — primary auth guard)
+- apps/api/src/common/guards/supabase-auth.guard.ts (stub → re-exports JwtAuthGuard)
+- apps/web/middleware.ts (reads JWT from cookie)
+- apps/web/hooks/use-auth.ts (calls NestJS API directly)
+- apps/web/hooks/use-user.ts (reads JWT from cookie)
+- apps/web/app/(auth)/*.tsx (all use useAuth hook, no Supabase)
+- apps/web/app/(dashboard)/onboarding/page.tsx (getCookie helper)
+- docker-compose.yml, Dockerfile (api + web), .dockerignore
+- schema.prisma (passwordHash field added)
+- README.md (updated tech stack + Docker commands)
+
+## CHECKPOINT: 2026-04-20T16:44 — manual snap after infra migration commit (c6d8ce7)

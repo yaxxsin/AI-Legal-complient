@@ -4,16 +4,28 @@ import {
   Injectable,
   UnauthorizedException,
 } from '@nestjs/common';
-import { AuthService } from '../../modules/auth/auth.service';
+import { ConfigService } from '@nestjs/config';
+import * as jwt from 'jsonwebtoken';
 import { PrismaService } from '../../database/prisma.service';
+
+interface JwtPayload {
+  sub: string;
+  email: string;
+  role: string;
+  plan: string;
+}
 
 /** Verifies the JWT from the Authorization header or cookie */
 @Injectable()
 export class JwtAuthGuard implements CanActivate {
+  private readonly jwtSecret: string;
+
   constructor(
-    private readonly authService: AuthService,
+    private readonly config: ConfigService,
     private readonly prisma: PrismaService,
-  ) {}
+  ) {
+    this.jwtSecret = this.config.getOrThrow<string>('JWT_SECRET');
+  }
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const request = context.switchToHttp().getRequest();
@@ -24,7 +36,12 @@ export class JwtAuthGuard implements CanActivate {
     }
 
     // Verify JWT
-    const payload = this.authService.verifyToken(token);
+    let payload: JwtPayload;
+    try {
+      payload = jwt.verify(token, this.jwtSecret) as JwtPayload;
+    } catch {
+      throw new UnauthorizedException('Invalid or expired token');
+    }
 
     // Fetch full user from DB
     const user = await this.prisma.user.findUnique({
@@ -41,7 +58,12 @@ export class JwtAuthGuard implements CanActivate {
   }
 
   /** Extract token from Authorization header or cookie */
-  private extractToken(request: { headers: Record<string, string>; cookies?: Record<string, string> }): string | null {
+  private extractToken(
+    request: {
+      headers: Record<string, string>;
+      cookies?: Record<string, string>;
+    },
+  ): string | null {
     // Try Authorization header first
     const authHeader = request.headers?.authorization;
     if (authHeader?.startsWith('Bearer ')) {
