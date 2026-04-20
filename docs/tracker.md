@@ -17,3 +17,9 @@
 
 ## 🔗 Decisions
 <!-- /log decision [deskripsi] -->
+- [2026-04-20] Model switch: Anthropic Claude → Ollama (Qwen 2.5) — local inference, no API cost
+
+## 📜 Log
+- [2026-04-20] Phase 05 complete: RAG pipeline + 6 regulasi seed + Pinecone integration
+- [2026-04-20] Phase 06 complete: ComplianceBot API — Ollama/Qwen streaming, conversation CRUD, RAG context
+- [2026-04-20] Middleware guard added for placeholder Supabase env vars

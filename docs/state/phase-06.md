@@ -12,21 +12,29 @@
 - [x] Rate limiting: Free=10/hari, Starter+=unlimited
 
 ## CONTEXT
-MOD-03 bagian API. ComplianceBot conversation management + AI response.
-Streaming via SSE. Context window: 10 pesan terakhir + RAG context.
-Persona: ramah, bahasa Indonesia, hindari jargon, disclaimer.
-
-Blueprint ref: BAB 6 MOD-03 (F-03-01 API side)
+- Ollama via OpenAI-compatible API (/v1) — reuse `openai` npm package
+- System prompt di chat.constants.ts — persona Indonesia, disclaimer, referensi hukum
+- Streaming via AsyncGenerator → SSE in controller
+- Rate limit: count user messages today, block at 10 for free plan
+- Middleware guard added for missing Supabase env vars (placeholder mode)
 
 ## COMPLETED
-- ollama.provider.ts — OpenAI SDK pointed at Ollama /v1 endpoint
-- chat.constants.ts — system prompt + title generator
-- chat.service.ts — conversation CRUD, RAG context, Qwen streaming, rate limit
-- chat.controller.ts — REST endpoints + SSE streaming
-- chat.module.ts — imports RagModule, exports ChatService
+- ollama.provider.ts, chat.constants.ts, chat.service.ts, chat.controller.ts, chat.module.ts
 - DTOs: create-conversation, send-message, update-conversation, message-feedback
 - Registered in AppModule
-- Model switch: Anthropic → Ollama/Qwen across all docs
 - Type-check: PASS
 
+## CHECKPOINT
+- 2026-04-20T10:23 — Phase 05+06 complete, pushed to origin
+- Commit: cdd78c8 → origin/feature/phase-06-compliancebot-api
+- Phase 05 branch: feature/phase-05-rag-pipeline (3 commits)
+- Phase 06 branch: feature/phase-06-compliancebot-api (1 commit)
+
+## DON'T
+- Don't reinstall @anthropic-ai/sdk — removed, using ollama via openai SDK
+- Don't re-create chat module files — all exist and type-check passes
+- Don't modify middleware.ts guard — already handles placeholder env
+
+## NOW: Complete
+## NEXT: Phase 07 — ComplianceBot Chat UI
 ## CRUMBS:
