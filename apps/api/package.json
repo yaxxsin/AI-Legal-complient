@@ -14,7 +14,8 @@
     "test": "jest",
     "test:watch": "jest --watch",
     "test:cov": "jest --coverage",
-    "clean": "rimraf dist .turbo node_modules"
+    "clean": "rimraf dist .turbo node_modules",
+    "seed:regulations": "ts-node --compiler-options {\"module\":\"CommonJS\"} prisma/seed-regulations.ts"
   },
   "dependencies": {
     "@langchain/textsplitters": "^1.0.1",

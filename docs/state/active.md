@@ -4,10 +4,10 @@
 > Menunjuk ke phase state yang sedang aktif.
 
 ## ACTIVE
-- **Phase**: 5: RAG Pipeline & Knowledge Base (🔄 In Progress)
-- **State File**: phase-05.md
+- **Phase**: 6: ComplianceBot API (⬜ Not Started)
+- **State File**: phase-06.md
 - **Developer**: Engine AI
-- **Since**: 2026-04-17
+- **Since**: 2026-04-20
 
 ## PHASE INDEX
 
@@ -20,7 +20,7 @@
 | 2 | Auth — Google SSO & RBAC | phase-02.md | ✅ | S | Phase 1 |
 | 3 | Onboarding Wizard | phase-03.md | ✅ | S | Phase 1 |
 | 4 | Master Data Sektor | phase-04.md | ✅ | XS | Phase 0 |
-| 5 | RAG Pipeline & Knowledge Base | phase-05.md | ⬜ | S | Phase 0 |
+| 5 | RAG Pipeline & Knowledge Base | phase-05.md | ✅ | S | Phase 0 |
 | 6 | ComplianceBot API | phase-06.md | ⬜ | S | Phase 5 |
 | 7 | ComplianceBot Chat UI | phase-07.md | ⬜ | S | Phase 6 |
 | 8 | Compliance Checklist Engine | phase-08.md | ⬜ | S | Phase 3 |
