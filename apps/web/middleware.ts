@@ -8,9 +8,17 @@ const AUTH_ROUTES = ['/login', '/register', '/forgot-password', '/reset-password
 export async function middleware(request: NextRequest) {
   let response = NextResponse.next({ request });
 
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL ?? '';
+  const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? '';
+
+  // Skip auth middleware if Supabase is not configured
+  if (!supabaseUrl || !supabaseKey || supabaseUrl.includes('placeholder')) {
+    return response;
+  }
+
   const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    supabaseUrl,
+    supabaseKey,
     {
       cookies: {
         getAll() {
