@@ -1,6 +1,6 @@
 # Phase 05: RAG Pipeline & Knowledge Base
 
-## STATUS: ⬜ Not Started
+## STATUS: 🔄 In Progress
 ## DEPENDENCY: Phase 0
 ## ESTIMASI: S (~1.5 jam)
 
@@ -18,6 +18,6 @@ Chunk ke Pinecone (1 index, namespace per document_type).
 
 Blueprint ref: BAB 6 MOD-03 (F-03-02)
 
-## NOW: -
-## NEXT: -
-## CRUMBS: -
+## NOW: Step 1 — Install dependencies
+## NEXT: Step 2 — RAG service + Pinecone provider
+## CRUMBS:

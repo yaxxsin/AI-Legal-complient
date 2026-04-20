@@ -7,6 +7,8 @@ import { AuthModule } from './modules/auth/auth.module';
 import { UsersModule } from './modules/users/users.module';
 import { BusinessProfilesModule } from './modules/business-profiles/business-profiles.module';
 import { SectorsModule } from './modules/sectors/sectors.module';
+import { RagModule } from './modules/rag/rag.module';
+import { RegulationsModule } from './modules/regulations/regulations.module';
 
 @Module({
   imports: [
@@ -38,6 +40,8 @@ import { SectorsModule } from './modules/sectors/sectors.module';
     UsersModule,
     BusinessProfilesModule,
     SectorsModule,
+    RagModule,
+    RegulationsModule,
   ],
 })
 export class AppModule {}

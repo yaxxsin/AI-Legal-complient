@@ -1,11 +1,11 @@
 'use client';
 
-import { useState } from 'react';
+import { Suspense, useState } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 
-export default function LoginPage() {
+function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const redirect = searchParams.get('redirect') ?? '/dashboard';
@@ -190,5 +190,14 @@ export default function LoginPage() {
         </Link>
       </p>
     </div>
+  );
+}
+
+/** Suspense wrapper required by Next.js 14 for useSearchParams() during static generation */
+export default function LoginPage() {
+  return (
+    <Suspense fallback={<div className="animate-pulse h-96" />}>
+      <LoginForm />
+    </Suspense>
   );
 }
