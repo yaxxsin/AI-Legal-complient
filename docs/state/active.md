@@ -4,8 +4,8 @@
 > Menunjuk ke phase state yang sedang aktif.
 
 ## ACTIVE
-- **Phase**: 10: Compliance Score Dashboard (⬜ Not Started)
-- **State File**: phase-10.md
+- **Phase**: 11: Document Generator — 3 Templates (⬜ Not Started)
+- **State File**: phase-11.md
 - **Developer**: Engine AI
 - **Since**: 2026-04-20
 
@@ -25,7 +25,7 @@
 | 7 | ComplianceBot Chat UI | phase-07.md | ✅ | S | Phase 6 |
 | 8 | Compliance Checklist Engine | phase-08.md | ✅ | S | Phase 3 |
 | 9 | Checklist UI & Status Update | phase-09.md | ✅ | S | Phase 8 |
-| 10 | Compliance Score Dashboard | phase-10.md | ⬜ | S | Phase 8 |
+| 10 | Compliance Score Dashboard | phase-10.md | ✅ | S | Phase 8 |
 | 11 | Document Generator — 3 Templates | phase-11.md | ⬜ | S | Phase 3 |
 | 12 | Document Generator — Complete + CMS | phase-12.md | ⬜ | S | Phase 11 |
 | 13 | Regulatory Alerts & Notifications | phase-13.md | ⬜ | S | Phase 5 |
