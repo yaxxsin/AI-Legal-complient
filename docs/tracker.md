@@ -52,3 +52,6 @@
 - [2026-04-21] Fixed 500 error on `/business-profiles/:id` PUT endpoint where empty strings or parsing errors bypassed undefined check and evaluated to `Invalid Date` or invalid UUIDs.
 - [2026-04-21] Implemented AI Auto-Scanner (OCR) for Onboarding wizard using `pdf-parse` & `tesseract.js` + `Ollama`. Added `POST /api/v1/business-profiles/ocr/scan` route, allowing users to automatically populate Business Profile data from physical NIB/NPWP JPGs/PDFs.
 - [2026-04-21] Upgraded Checklist UX (Phase 21.1): Auto-generation of KBLI Checklist upon visiting the page if items are empty. Added inline evidence preview component (`iframe` for PDFs, `img` for standard images) natively integrated with MinIO URLs.
+- [2026-04-21] ad449ec → feature/phase-21-checklist | [phase-26] feat: implement automated regulation sync and pricing upgrade UI (14 files, +953 -7)
+- [2026-04-21] Admin-facing: Created Automation Module for Regulation Sync (Phase 26). Automated Daily Cron (2 AM) to pull latest laws from peraturan.go.id & JDIH, added Diff Engine, and auto-broadcasted Regulatory Alerts to relevant users.
+- [2026-04-21] User-facing: Integrated Pricing Upgrade "Paywall" logic. If a user hits a plan limit, the UI now displays a premium prompt to upgrade, with a smart backend that recycles existing draf-profiles to prevent unnecessary blocks.

@@ -8,6 +8,7 @@ import {
 import { PrismaService } from '../../database/prisma.service';
 import { CreateBusinessProfileDto, UpdateBusinessProfileDto, UpdateStepDto } from './dto';
 import { ChatService } from '../chat/chat.service';
+import { ComplianceItemsService } from '../compliance-items/compliance-items.service';
 import * as Tesseract from 'tesseract.js';
 const pdfParse = require('pdf-parse');
 
@@ -26,6 +27,7 @@ export class BusinessProfilesService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly chatService: ChatService,
+    private readonly complianceItemsService: ComplianceItemsService,
   ) {}
 
   /** Create new business profile (check plan limit) */
@@ -122,7 +124,62 @@ export class BusinessProfilesService {
         isDraft: false,
         onboardingStep: 5,
       },
+    }).then(async (profile) => {
+      // Auto-generate checklist + mark NIB/NPWP completed
+      await this.autoPopulateChecklist(profile.id, userId, dto);
+      return profile;
     });
+  }
+
+  /**
+   * Auto-generate compliance checklist and mark NIB/NPWP items as completed
+   * when detected from onboarding data.
+   */
+  private async autoPopulateChecklist(
+    profileId: string, userId: string, dto: UpdateBusinessProfileDto,
+  ) {
+    try {
+      // 1. Generate the full checklist
+      await this.complianceItemsService.generateChecklist(profileId, userId);
+
+      // 2. Auto-complete items matching detected documents
+      const items = await this.prisma.complianceItem.findMany({
+        where: { businessProfileId: profileId },
+      });
+
+      for (const item of items) {
+        const titleLower = item.title.toLowerCase();
+
+        // NIB detected → mark NIB items completed
+        if (dto.nibNumber && (titleLower.includes('nib') || titleLower.includes('nomor induk berusaha'))) {
+          await this.prisma.complianceItem.update({
+            where: { id: item.id },
+            data: {
+              status: 'completed',
+              completedAt: new Date(),
+              notes: `Auto-verified dari onboarding. NIB: ${dto.nibNumber}`,
+            },
+          });
+        }
+
+        // NPWP detected → mark NPWP items completed
+        if (dto.npwp && (titleLower.includes('npwp'))) {
+          await this.prisma.complianceItem.update({
+            where: { id: item.id },
+            data: {
+              status: 'completed',
+              completedAt: new Date(),
+              notes: `Auto-verified dari onboarding. NPWP: ${dto.npwp}`,
+            },
+          });
+        }
+      }
+
+      this.logger.log(`Auto-populated checklist for profile ${profileId}`);
+    } catch (err) {
+      this.logger.warn(`Failed to auto-populate checklist: ${(err as Error).message}`);
+      // Non-blocking — don't fail the update even if checklist fails
+    }
   }
 
   /** Auto-save per wizard step */

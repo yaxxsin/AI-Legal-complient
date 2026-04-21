@@ -20,6 +20,7 @@ import {
   LogOut,
   Flag,
   BriefcaseBusiness,
+  RefreshCw,
 } from 'lucide-react';
 import { useAuth } from '@/hooks/use-auth';
 import { useCurrentUser } from '@/hooks/use-user';
@@ -47,6 +48,7 @@ const adminLinks = [
   { href: '/admin/users', label: 'Users', icon: Users },
   { href: '/admin/rules', label: 'Compliance Rules', icon: Shield },
   { href: '/admin/regulations', label: 'Regulasi', icon: Database },
+  { href: '/admin/regulation-sync', label: 'Sync Regulasi', icon: RefreshCw },
   { href: '/admin/templates', label: 'Templates', icon: FileCode },
   { href: '/admin/articles', label: 'Artikel', icon: Newspaper },
   { href: '/admin/feature-flags', label: 'Target & Feature', icon: Flag },

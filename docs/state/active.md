@@ -4,17 +4,15 @@
 > Menunjuk ke phase state yang sedang aktif.
 
 ## ACTIVE
-- **Phase**: 20: Multi-User & Team
-- **State File**: phase-21.md
+- **Phase**: 26: Automated Regulation Sync
+- **State File**: phase-26.md
 - **Developer**: Engine AI
 - **Since**: 2026-04-21
-- **Status**: Completed Upgrade Tier Pricing Workflow
+- **Status**: 🟡 In Progress (Sync Module + Pricing Paywall Implemented)
 
-NOW.Task: Upgrade Tier Pricing Workflow Complete!
-NOW.Step: 4/4 - Verified & ReportedoService
-3. Create compliance-items backend API
-4. Create Frontend Upload Checklist UI
-5. Testing and Validation
+NOW.Task: Implement Frontend Admin Sync Log UI
+NOW.Step: 8/11 - Building UI for manual trigger and history log
+CRUMBS: saved: ad449ec
 
 ## PHASE INDEX
 

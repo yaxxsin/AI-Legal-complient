@@ -20,7 +20,7 @@ interface ScrapedRegulation {
 }
 
 /** Result of a single sync operation */
-interface SyncResult {
+export interface SyncResult {
   source: string;
   totalFetched: number;
   totalNew: number;

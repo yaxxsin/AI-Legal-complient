@@ -10,7 +10,10 @@ import {
   Filter,
   Loader2,
   UploadCloud,
-  FileText
+  FileText,
+  Lightbulb,
+  ArrowRight,
+  ShieldCheck
 } from 'lucide-react';
 
 interface BusinessProfile {
@@ -26,6 +29,7 @@ interface ChecklistItem {
   priority: 'HIGH' | 'MEDIUM' | 'LOW';
   status: 'pending' | 'completed';
   evidenceUrl: string | null;
+  notes: string | null;
   rule: {
     category: {
       name: string;
@@ -199,6 +203,11 @@ export default function ChecklistPage() {
         ))}
       </div>
 
+      {/* Analysis Summary & Suggestions */}
+      {items.length > 0 && (
+        <AnalysisSummary items={items} />
+      )}
+
       {/* Items */}
       {isLoading ? (
         <div className="flex items-center justify-center py-16">
@@ -236,6 +245,66 @@ export default function ChecklistPage() {
               onUpload={uploadEvidence}
             />
           ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/** Analysis Summary — shows onboarding results + next steps */
+function AnalysisSummary({ items }: { items: ChecklistItem[] }) {
+  const autoVerified = items.filter(i => i.notes?.startsWith('Auto-verified'));
+  const pendingItems = items.filter(i => i.status === 'pending');
+  const highPrioPending = pendingItems.filter(i => i.priority === 'HIGH');
+
+  if (autoVerified.length === 0 && pendingItems.length === 0) return null;
+
+  return (
+    <div className="space-y-4">
+      {/* Detected Documents Summary */}
+      {autoVerified.length > 0 && (
+        <div className="p-5 rounded-2xl border border-emerald-500/20 bg-emerald-500/5">
+          <h3 className="text-sm font-heading font-bold flex items-center gap-2 mb-3">
+            <ShieldCheck className="w-4 h-4 text-emerald-500" />
+            Hasil Analisis Onboarding
+          </h3>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+            {autoVerified.map(item => (
+              <div key={item.id} className="flex items-center gap-2 text-sm bg-emerald-500/10 rounded-lg px-3 py-2">
+                <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" />
+                <div className="min-w-0">
+                  <span className="font-medium text-emerald-700 dark:text-emerald-400">{item.title}</span>
+                  {item.notes && (
+                    <p className="text-xs text-muted-foreground truncate">{item.notes.replace('Auto-verified dari onboarding. ', '')}</p>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Next Steps Suggestions */}
+      {pendingItems.length > 0 && (
+        <div className="p-5 rounded-2xl border border-amber-500/20 bg-amber-500/5">
+          <h3 className="text-sm font-heading font-bold flex items-center gap-2 mb-3">
+            <Lightbulb className="w-4 h-4 text-amber-500" />
+            Langkah Selanjutnya ({highPrioPending.length > 0 ? `${highPrioPending.length} prioritas tinggi` : `${pendingItems.length} item tersisa`})
+          </h3>
+          <div className="space-y-2">
+            {(highPrioPending.length > 0 ? highPrioPending : pendingItems).slice(0, 4).map(item => (
+              <div key={item.id} className="flex items-start gap-2 text-sm bg-amber-500/10 rounded-lg px-3 py-2">
+                <ArrowRight className="w-4 h-4 text-amber-600 mt-0.5 shrink-0" />
+                <div>
+                  <span className="font-medium">{item.title}</span>
+                  <p className="text-xs text-muted-foreground mt-0.5">{item.description.substring(0, 120)}{item.description.length > 120 ? '...' : ''}</p>
+                </div>
+              </div>
+            ))}
+            {pendingItems.length > 4 && (
+              <p className="text-xs text-muted-foreground pl-6">...dan {pendingItems.length - 4} item lainnya</p>
+            )}
+          </div>
         </div>
       )}
     </div>
