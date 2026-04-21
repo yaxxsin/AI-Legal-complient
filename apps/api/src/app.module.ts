@@ -11,6 +11,10 @@ import { DocumentsModule } from './modules/documents/documents.module';
 import { NotificationsModule } from './modules/notifications/notifications.module';
 import { ChatModule } from './modules/chat/chat.module';
 import { ArticlesModule } from './modules/articles/articles.module';
+import { BillingModule } from './modules/billing/billing.module';
+import { ComplianceRulesModule } from './modules/compliance-rules/compliance-rules.module';
+import { RegulationsModule } from './modules/regulations/regulations.module';
+import { FeatureFlagsModule } from './modules/feature-flags/feature-flags.module';
 
 @Module({
   imports: [
@@ -51,6 +55,10 @@ import { ArticlesModule } from './modules/articles/articles.module';
     NotificationsModule,
     ChatModule,
     ArticlesModule,
+    BillingModule,
+    ComplianceRulesModule,
+    RegulationsModule,
+    FeatureFlagsModule,
   ],
 })
 export class AppModule {}

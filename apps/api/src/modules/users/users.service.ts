@@ -118,4 +118,69 @@ export class UsersService {
 
     this.logger.log(`Account soft-deleted: ${userId}`);
   }
+
+  // =====================================
+  // ADMIN METHODS
+  // =====================================
+
+  /** List all users with pagination and search */
+  async findAll({ page = 1, limit = 10, search }: { page?: number; limit?: number; search?: string }) {
+    const skip = (page - 1) * limit;
+    const where = search
+      ? {
+          OR: [
+            { email: { contains: search, mode: 'insensitive' as const } },
+            { fullName: { contains: search, mode: 'insensitive' as const } },
+          ],
+        }
+      : {};
+
+    const [users, total] = await Promise.all([
+      this.prisma.user.findMany({
+        where,
+        skip,
+        take: limit,
+        select: {
+          id: true,
+          email: true,
+          fullName: true,
+          phone: true,
+          role: true,
+          plan: true,
+          emailVerified: true,
+          createdAt: true,
+        },
+        orderBy: { createdAt: 'desc' },
+      }),
+      this.prisma.user.count({ where }),
+    ]);
+
+    return {
+      data: users,
+      meta: {
+        total,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit),
+      },
+    };
+  }
+
+  /** Update user role for admin purposes */
+  async updateRole(userId: string, role: string) {
+    if (!['user', 'admin', 'banned'].includes(role)) {
+      throw new BadRequestException('Role tidak diizinkan');
+    }
+
+    await this.findById(userId);
+
+    const user = await this.prisma.user.update({
+      where: { id: userId },
+      data: { role },
+      select: { id: true, email: true, role: true },
+    });
+
+    this.logger.log(`User ${userId} role updated to ${role}`);
+    return user;
+  }
 }

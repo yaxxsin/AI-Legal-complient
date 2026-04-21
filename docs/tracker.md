@@ -28,3 +28,6 @@
 - [2026-04-21] 84c5251 → feature/phase-12-doc-cms | [phase-14] feat: Knowledge Base — articles API + 20 seeds + UI (13 files, +2181)
 - [2026-04-21] 2a9d4da → feature/phase-12-doc-cms | [phase-07] fix: format chat responses with markdown rendering (4 files, +106 -7)
 - [2026-04-21] Phase 14 complete: Knowledge Base & FAQ + Admin CMS using Tiptap
+- [2026-04-21] Phase 15 complete: Subscription & Billing via Midtrans, PDF Invoice
+- [2026-04-21] 84fe94f → feature/phase-12-doc-cms | [phase-14] feat: separate server/client components for SEO, finalize Admin CMS for articles
+- [2026-04-21] Phase 16 complete: Admin Panel Setup, Backend Master Data Modules, Frontend Stubs

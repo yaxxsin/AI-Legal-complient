@@ -40,6 +40,11 @@ export class ChatService {
       if (!response.ok) {
         const errorText = await response.text();
         this.logger.error(`Ollama HTTP ${response.status}: ${errorText}`);
+        
+        if (response.status === 404 && errorText.includes('not found')) {
+          return `Maaf, model AI '${this.model}' tidak ditemukan di Ollama lokal Anda. Silakan buka terminal dan jalankan perintah: \`ollama pull ${this.model}\``;
+        }
+
         throw new InternalServerErrorException(
           `AI service error: ${response.status}`,
         );
