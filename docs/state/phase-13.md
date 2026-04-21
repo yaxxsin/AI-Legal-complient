@@ -22,12 +22,23 @@ Backend: NotificationsModule (module, controller, service)
 Frontend: NotificationCenter component (bell + dropdown), /notifications page,
           useNotifications hook (polling 60s)
 
+Sesi ini juga fix beberapa infrastructure issues:
+- Dashboard page missing → created (dashboard)/dashboard/page.tsx
+- Chat + Checklist pages missing → created (dashboard)/chat/ dan (dashboard)/checklist/
+- ChatModule backend missing → created full module with Ollama integration
+- OLLAMA_MODEL env mismatch → switched qwen2.5 → llama3.2:1b (model yang ter-install)
+- /learn executed → docs/patterns.md created (25 patterns, 10 categories)
+
+Key insight: Next.js route group (dashboard) TIDAK membuat URL segment.
+Pages harus di (dashboard)/dashboard/page.tsx untuk URL /dashboard.
+
 API endpoints:
 - GET /notifications (paginated, filter by type/isRead)
 - GET /notifications/unread-count
 - PATCH /notifications/:id/read
 - POST /notifications/read-all
 - DELETE /notifications/:id
+- POST /chat (NEW — Ollama integration)
 
 Blueprint ref: BAB 6 MOD-07 (F-07-01, F-07-02)
 
@@ -40,13 +51,11 @@ Blueprint ref: BAB 6 MOD-07 (F-07-01, F-07-02)
 ## DON'T:
 - Regulation model has `type` NOT `category`
 - NotificationCenter already integrated in Topbar
+- Route group (dashboard) DOESN'T create URL segment — pages need subfolder
+- OLLAMA_MODEL harus match model yang ter-install (cek `ollama list`)
+- NestJS TIDAK hot-reload env vars — harus restart server
+- Chat frontend reads token from document.cookie `access_token`
 
 ## CRUMBS:
-- apps/api/src/modules/notifications/ (module, controller, service)
-- apps/web/hooks/use-notifications.ts
-- apps/web/components/notifications/notification-center.tsx
-- apps/web/app/(dashboard)/notifications/page.tsx
-- apps/web/components/layout/topbar.tsx (updated — uses NotificationCenter)
-- apps/api/src/app.module.ts (NotificationsModule added)
 
-## CHECKPOINT: 2026-04-20T16:54 — notifications CRUD + UI done, cron pending
+## CHECKPOINT: 2026-04-20T17:34 — notifications done, dashboard/chat/checklist pages fixed, ChatModule + Ollama connected, /learn patterns saved

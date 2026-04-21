@@ -9,6 +9,7 @@ import { BusinessProfilesModule } from './modules/business-profiles/business-pro
 import { SectorsModule } from './modules/sectors/sectors.module';
 import { DocumentsModule } from './modules/documents/documents.module';
 import { NotificationsModule } from './modules/notifications/notifications.module';
+import { ChatModule } from './modules/chat/chat.module';
 
 @Module({
   imports: [
@@ -47,6 +48,7 @@ import { NotificationsModule } from './modules/notifications/notifications.modul
     SectorsModule,
     DocumentsModule,
     NotificationsModule,
+    ChatModule,
   ],
 })
 export class AppModule {}
