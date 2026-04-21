@@ -252,10 +252,18 @@ function renderMarkdown(text: string): string {
     .replace(/^# (.+)$/gm, '<h3 class="chat-md-h3">$1</h3>')
     // Bold
     .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+    // Markdown links: [text](url)
+    .replace(/\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g, '<a href="$2" target="_blank" rel="noopener noreferrer" class="chat-md-link">$1 ↗</a>')
+    // Bare URLs: https://... or http://...
+    .replace(/(?<![="'])(https?:\/\/[^\s<)\]]+)/g, '<a href="$1" target="_blank" rel="noopener noreferrer" class="chat-md-link">$1 ↗</a>')
     // Numbered lists: "1. item"
     .replace(/^(\d+)\.\s+(.+)$/gm, '<div class="chat-md-li"><span class="chat-md-num">$1.</span> $2</div>')
     // Bullet lists: "- item" or "* item"
     .replace(/^[-*]\s+(.+)$/gm, '<div class="chat-md-li"><span class="chat-md-bullet">•</span> $1</div>')
+    // Source citation block: 📎 Sumber: ...
+    .replace(/📎\s*Sumber:\s*(.+)/g, '<div class="chat-md-source">📎 <strong>Sumber:</strong> $1</div>')
+    // Warning block: ⚠️ ...
+    .replace(/⚠️\s*(.+)/g, '<div class="chat-md-warning">⚠️ $1</div>')
     // Double newlines → paragraph break
     .replace(/\n{2,}/g, '<div class="chat-md-break"></div>')
     // Single newlines → line break
