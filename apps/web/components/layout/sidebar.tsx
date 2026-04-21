@@ -102,6 +102,28 @@ export function Sidebar({ variant = 'dashboard' }: SidebarProps) {
         })}
       </nav>
 
+      {/* Premium Upgrade Banner for Free Accounts */}
+      {variant === 'dashboard' && user?.plan === 'free' && (
+        <div className="px-4 py-2 mt-auto">
+          <div className="p-4 rounded-xl bg-gradient-to-br from-accent/10 to-primary/10 border border-primary/20 relative overflow-hidden group shadow-sm">
+            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-[100%] group-hover:translate-x-[100%] transition-transform duration-1000" />
+            <div className="relative z-10">
+              <h4 className="font-heading font-bold text-sm text-primary mb-1 flex items-center gap-1.5">
+                <Shield className="w-3.5 h-3.5" />
+                Upgrade Paket
+              </h4>
+              <p className="text-xs text-muted-foreground mb-3 leading-relaxed">Kembangkan bisnis dengan profil tanpa batas & fitur AI tingkat lanjut.</p>
+              <Link 
+                href="/pricing"
+                className="block text-center w-full py-2 rounded-lg bg-primary/90 hover:bg-primary text-primary-foreground text-xs font-semibold shadow-sm transition-all hover:shadow-primary/25"
+              >
+                Lihat Penawaran
+              </Link>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Footer */}
       <div className="p-4 border-t border-border space-y-4">
         <button

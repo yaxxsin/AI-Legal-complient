@@ -506,3 +506,22 @@ model TeamInvitation {
 
   @@map("team_invitations")
 }
+
+// ==========================================
+// REGULATION SYNC LOG (Auto-Pull from OSS/JDIH)
+// ==========================================
+model RegulationSyncLog {
+  id             String   @id @default(uuid()) @db.Uuid
+  source         String   @db.VarChar(50) // 'jdih', 'peraturan_go_id', 'manual_csv'
+  status         String   @db.VarChar(20) // 'running', 'success', 'failed'
+  totalFetched   Int      @default(0) @map("total_fetched")
+  totalNew       Int      @default(0) @map("total_new")
+  totalUpdated   Int      @default(0) @map("total_updated")
+  totalSkipped   Int      @default(0) @map("total_skipped")
+  errorMessage   String?  @map("error_message") @db.Text
+  triggeredBy    String   @map("triggered_by") @db.VarChar(50) // 'cron', 'admin_manual'
+  startedAt      DateTime @default(now()) @map("started_at")
+  completedAt    DateTime? @map("completed_at")
+
+  @@map("regulation_sync_logs")
+}

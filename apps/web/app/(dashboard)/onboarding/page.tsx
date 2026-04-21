@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { WizardProgress } from '@/components/onboarding/wizard-progress';
 import { WizardStep1 } from '@/components/onboarding/wizard-step-1';
@@ -57,6 +58,7 @@ export default function OnboardingPage() {
   const [profileId, setProfileId] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState('');
+  const [isLimitReached, setIsLimitReached] = useState(false);
 
   const apiUrl = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001/api/v1';
 
@@ -107,7 +109,11 @@ export default function OnboardingPage() {
 
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
-        setError(err.message ?? 'Gagal membuat profil');
+        if (err.code === 'PLAN_LIMIT_REACHED' || err.message?.includes('hanya mendukung')) {
+          setIsLimitReached(true);
+        } else {
+          setError(err.message ?? 'Gagal membuat profil');
+        }
         return null;
       }
 
@@ -159,6 +165,7 @@ export default function OnboardingPage() {
   /** Go to next step */
   async function handleNext() {
     setError('');
+    setIsLimitReached(false);
 
     // Step 1: validate + create draft
     if (currentStep === 1) {
@@ -362,9 +369,37 @@ export default function OnboardingPage() {
         )}
 
         {/* Error */}
-        {error && (
+        {error && !isLimitReached && (
           <div className="mt-4 p-3 rounded-xl bg-destructive/10 text-destructive text-sm text-center border border-destructive/20">
             {error}
+          </div>
+        )}
+
+        {/* Upgrade Paywall Warning */}
+        {isLimitReached && (
+          <div className="mt-6 p-6 rounded-2xl bg-primary/5 border-2 border-primary/20 text-center animate-fade-in relative overflow-hidden">
+            <div className="absolute -top-10 -right-10 w-32 h-32 bg-primary/10 rounded-full blur-3xl" />
+            <h3 className="text-xl font-heading font-bold text-primary mb-2">
+              Kuota Profil Penuh! 🚀
+            </h3>
+            <p className="text-sm text-muted-foreground mb-6">
+              Paket langganan Anda saat ini tidak mendukung lebih dari jumlah profil bisnis yang Anda miliki. Upgrade ke paket Growth/Business untuk mendapatkan kuota profil bisnis tak terbatas.
+            </p>
+            <div className="flex items-center justify-center gap-3">
+              <Link 
+                href="/pricing"
+                className="px-6 py-2.5 rounded-xl bg-primary text-primary-foreground font-semibold shadow-md shadow-primary/20 hover:-translate-y-0.5 hover:shadow-lg transition-all"
+              >
+                Lihat Paket Upgrade
+              </Link>
+              <button 
+                onClick={() => setIsLimitReached(false)}
+                className="px-6 py-2.5 rounded-xl border border-border font-semibold hover:bg-muted/50 transition-colors"
+                type="button"
+              >
+                Kembali
+              </button>
+            </div>
           </div>
         )}
 

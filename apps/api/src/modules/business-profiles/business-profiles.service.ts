@@ -36,6 +36,17 @@ export class BusinessProfilesService {
     });
 
     if (count >= limit) {
+      // PERBAIKAN: Jika ada draf yang belum selesai, gunakan saja draf itu daripada error
+      const draftProfile = await this.prisma.businessProfile.findFirst({
+        where: { userId, isDraft: true }
+      });
+      if (draftProfile) {
+        return this.prisma.businessProfile.update({
+          where: { id: draftProfile.id },
+          data: { entityType: dto.entityType }
+        });
+      }
+
       throw new ForbiddenException({
         code: 'PLAN_LIMIT_REACHED',
         message: `Paket ${userPlan} hanya mendukung ${limit} profil bisnis`,
