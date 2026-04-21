@@ -48,6 +48,6 @@ Tantangan:
 9. [ ] **Step 9: CSV Fallback** (Manual import endpoint)
 10. [ ] **Step 10: Build Verify**
 
-## NOW: Build verification
-## NEXT: CSV fallback import (optional)
-## CRUMBS: saved: ad449ec, admin-ui-created
+## NOW: Researching [update database Pusat Pengetahuan bersumber dari https://pasal.id/]
+## NEXT: Implementing Pasal.id DB Sync
+## CRUMBS: saved: 7221b72

@@ -1,4 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { PrismaService } from '../../database/prisma.service';
 import { NotificationsService } from '../notifications/notifications.service';
@@ -39,10 +40,17 @@ export class RegulationSyncService {
     jdih: 'https://jdih.go.id',
   };
 
+  private readonly pasalApiUrl: string;
+  private readonly pasalToken: string;
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly notificationsService: NotificationsService,
-  ) {}
+    private readonly config: ConfigService,
+  ) {
+    this.pasalApiUrl = this.config.get<string>('PASAL_API_URL') ?? 'https://pasal.id/api/v1';
+    this.pasalToken = this.config.get<string>('PASAL_API_TOKEN') ?? '';
+  }
 
   /**
    * Cron Job: Auto-sync every day at 02:00 AM (WIB)
@@ -84,6 +92,19 @@ export class RegulationSyncService {
       this.logger.error(`Sync JDIH failed: ${(err as Error).message}`);
       results.push({
         source: 'jdih',
+        totalFetched: 0, totalNew: 0, totalUpdated: 0, totalSkipped: 0,
+        errors: [(err as Error).message],
+      });
+    }
+
+    // Source 3: Pasal.id API
+    try {
+      const r = await this.syncFromPasalId(triggeredBy);
+      results.push(r);
+    } catch (err) {
+      this.logger.error(`Sync Pasal.id failed: ${(err as Error).message}`);
+      results.push({
+        source: 'pasal_id',
         totalFetched: 0, totalNew: 0, totalUpdated: 0, totalSkipped: 0,
         errors: [(err as Error).message],
       });
@@ -164,6 +185,82 @@ export class RegulationSyncService {
     }
 
     return result;
+  }
+
+  /** API Fetcher: Pasal.id */
+  private async syncFromPasalId(triggeredBy: string): Promise<SyncResult> {
+    const log = await this.createSyncLog('pasal_id', triggeredBy);
+    const result: SyncResult = {
+      source: 'pasal_id', totalFetched: 0,
+      totalNew: 0, totalUpdated: 0, totalSkipped: 0, errors: [],
+    };
+
+    if (!this.pasalToken) {
+      const msg = 'PASAL_API_TOKEN is not configured';
+      result.errors.push(msg);
+      await this.completeSyncLog(log.id, 'failed', result, msg);
+      return result;
+    }
+
+    try {
+      // Fetch latest general regulations via search
+      const url = `${this.pasalApiUrl}/search?limit=20`;
+      const response = await axios.get(url, {
+        timeout: 30000,
+        headers: { 
+          'Authorization': `Bearer ${this.pasalToken}`,
+          'Accept': 'application/json'
+        },
+      });
+
+      const data = response.data?.data || response.data?.results || response.data || [];
+      const scraped = this.parsePasalId(data);
+      result.totalFetched = scraped.length;
+
+      for (const reg of scraped) {
+        const outcome = await this.upsertRegulation(reg);
+        if (outcome === 'new') result.totalNew++;
+        else if (outcome === 'updated') result.totalUpdated++;
+        else result.totalSkipped++;
+      }
+
+      await this.completeSyncLog(log.id, 'success', result);
+      this.logger.log(`✅ Pasal.id sync: ${result.totalNew} new, ${result.totalUpdated} updated, ${result.totalSkipped} skipped`);
+    } catch (err) {
+      const msg = (err as Error).message;
+      result.errors.push(msg);
+      await this.completeSyncLog(log.id, 'failed', result, msg);
+    }
+
+    return result;
+  }
+
+  /** JSON Parser: Pasal.id API Response */
+  private parsePasalId(items: any[]): ScrapedRegulation[] {
+    if (!Array.isArray(items)) return [];
+    
+    return items.map(item => {
+      const type = item.type || this.detectRegType(item.title || item.about || '');
+      const num = item.number || '';
+      const year = item.year || '';
+      
+      const regNum = (num && year) ? `${type} No. ${num} Tahun ${year}` : (item.number || '');
+      const title = item.title || item.about || '';
+      const fallbackDate = new Date().toISOString().split('T')[0];
+
+      return {
+        title: title.substring(0, 490),
+        regulationNumber: regNum || `PASALID-${Date.now()}-${Math.floor(Math.random()*1000)}`,
+        type: this.detectRegType(title),
+        issuedBy: this.detectIssuer(title),
+        issuedDate: item.issued_date || fallbackDate,
+        effectiveDate: item.effective_date || fallbackDate,
+        status: item.status || 'Active',
+        sourceUrl: item.source_url || (item.frbr_uri ? `https://pasal.id${item.frbr_uri}` : `https://pasal.id/`),
+        sectorTags: this.detectSectorTags(title),
+        contentRaw: title,
+      };
+    }).filter(reg => reg.title.length > 5);
   }
 
   /**
