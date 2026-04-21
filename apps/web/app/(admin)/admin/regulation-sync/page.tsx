@@ -111,11 +111,13 @@ export default function AdminRegulationSyncPage() {
       peraturan_go_id: 'bg-blue-500/10 text-blue-500',
       jdih: 'bg-violet-500/10 text-violet-500',
       manual_csv: 'bg-orange-500/10 text-orange-500',
+      pasal_id: 'bg-emerald-500/10 text-emerald-600',
     };
     const labels: Record<string, string> = {
       peraturan_go_id: 'peraturan.go.id',
       jdih: 'JDIH',
       manual_csv: 'CSV Import',
+      pasal_id: 'Pasal.id API',
     };
     return (
       <span className={`px-2 py-0.5 rounded-full text-xs font-semibold ${colors[source] ?? 'bg-muted text-muted-foreground'}`}>
