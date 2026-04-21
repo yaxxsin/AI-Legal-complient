@@ -525,3 +525,35 @@ model RegulationSyncLog {
 
   @@map("regulation_sync_logs")
 }
+
+// ==========================================
+// CMS (Landing Page Builder)
+// ==========================================
+model CmsPage {
+  id              String       @id @default(uuid()) @db.Uuid
+  slug            String       @unique @db.VarChar(100)
+  title           String       @db.VarChar(200)
+  metaDescription String?      @map("meta_description") @db.VarChar(300)
+  isPublished     Boolean      @default(false) @map("is_published")
+  createdAt       DateTime     @default(now()) @map("created_at")
+  updatedAt       DateTime     @default(now()) @updatedAt @map("updated_at")
+
+  sections        CmsSection[]
+
+  @@map("cms_pages")
+}
+
+model CmsSection {
+  id          String   @id @default(uuid()) @db.Uuid
+  pageId      String   @map("page_id") @db.Uuid
+  type        String   @db.VarChar(50) // 'hero', 'features', 'cta', 'faq', 'testimonials'
+  sortOrder   Int      @default(0)   @map("sort_order")
+  content     Json     // { title: "", subtitle: "", items: [] }
+  isActive    Boolean  @default(true) @map("is_active")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @default(now()) @updatedAt @map("updated_at")
+
+  page        CmsPage  @relation(fields: [pageId], references: [id], onDelete: Cascade)
+
+  @@map("cms_sections")
+}

@@ -1,6 +1,6 @@
 # Phase 22: Admin CMS — Landing Page Builder
 
-## STATUS: 📋 Planned
+## STATUS: 🟡 In Progress
 ## DEPENDENCY: Phase 16 (Admin Panel)
 ## ESTIMASI: L (~4 jam)
 
@@ -22,6 +22,6 @@ public landing page render dari API secara dinamis.
 Block types: Hero, Feature Grid, Testimonial, Pricing CTA, FAQ, 
 Custom HTML, Image Banner.
 
-## NOW: -
-## NEXT: -
+## NOW: Researching Phase 22 (DB Schema + Tiptap/Block Editor tech stack)
+## NEXT: Pre-code Analysis
 ## CRUMBS: -

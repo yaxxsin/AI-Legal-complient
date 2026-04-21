@@ -4,15 +4,15 @@
 > Menunjuk ke phase state yang sedang aktif.
 
 ## ACTIVE
-- **Phase**: 26: Automated Regulation Sync
-- **State File**: phase-26.md
+- **Phase**: 22: Admin CMS — Landing Page Builder
+- **State File**: phase-22.md
 - **Developer**: Engine AI
 - **Since**: 2026-04-21
-- **Status**: 🟡 In Progress (Sync Module + Pricing Paywall Implemented)
+- **Status**: 🟡 In Progress (Researching)
 
-NOW.Task: Implement Frontend Admin Sync Log UI
-NOW.Step: 8/11 - Building UI for manual trigger and history log
-CRUMBS: saved: ad449ec
+NOW.Task: Researching Phase 22
+NOW.Step: 0/8 - Analyzing deps and schema
+CRUMBS: 
 
 ## PHASE INDEX
 
