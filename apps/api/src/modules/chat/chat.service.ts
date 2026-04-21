@@ -45,12 +45,11 @@ export class ChatService {
     return convo;
   }
 
-  /** Send a message to Ollama with optional conversation history and save */
+  /** Send a message to Ollama with regulation context and conversation history */
   async chat(message: string, userId: string, conversationId?: string) {
     let convoId = conversationId;
 
     if (!convoId) {
-      // Create new conversation
       const newConvo = await this.prisma.conversation.create({
         data: {
           userId,
@@ -59,41 +58,36 @@ export class ChatService {
       });
       convoId = newConvo.id;
     } else {
-      // Verify conversation belongs to user
       const exists = await this.prisma.conversation.findUnique({ where: { id: convoId } });
       if (!exists || exists.userId !== userId) {
         throw new NotFoundException('Conversation not found');
       }
-      
-      // Update its updatedAt timestamp to bubble it to top
       await this.prisma.conversation.update({
         where: { id: convoId },
         data: { updatedAt: new Date() }
       });
     }
 
-    // Save user message to database
+    // Save user message
     await this.prisma.message.create({
-      data: {
-        conversationId: convoId,
-        role: 'user',
-        content: message,
-      }
+      data: { conversationId: convoId, role: 'user', content: message }
     });
 
-    // Retrieve previous messages for context
+    // Retrieve conversation history
     const history = await this.prisma.message.findMany({
       where: { conversationId: convoId },
       orderBy: { createdAt: 'asc' },
-      take: 10, // Take last 10 messages for context to limit token usage
+      take: 10,
     });
 
-    const systemPrompt = this.buildSystemPrompt();
-    const url = `${this.ollamaUrl}/api/chat`;
+    // RAG-lite: retrieve relevant context from DB
+    const context = await this.retrieveContext(message);
+    const systemPrompt = this.buildSystemPrompt(context);
 
+    const url = `${this.ollamaUrl}/api/chat`;
     const chatMessages = [
       { role: 'system', content: systemPrompt },
-      ...history.map(msg => ({ role: msg.role, content: msg.content })) // Includes the user message just saved
+      ...history.map(msg => ({ role: msg.role, content: msg.content }))
     ];
 
     const payload = {
@@ -115,10 +109,8 @@ export class ChatService {
       if (!response.ok) {
         const errorText = await response.text();
         this.logger.error(`Ollama HTTP ${response.status}: ${errorText}`);
-        
+
         if (response.status === 404 && errorText.includes('not found')) {
-          // If model is missing, we shouldn't save the error message as bot reply unless wanted.
-          // We will return error message to user, but let's save it too for persistence.
           const errorMsg = `Maaf, model AI '${this.model}' tidak ditemukan di Ollama lokal Anda. Silakan buka terminal dan jalankan perintah: \`ollama pull ${this.model}\``;
           await this.prisma.message.create({
             data: { conversationId: convoId, role: 'assistant', content: errorMsg }
@@ -136,36 +128,32 @@ export class ChatService {
         this.logger.warn('Ollama returned empty reply');
         const emptyMsg = 'Maaf, saya tidak dapat memproses permintaan Anda saat ini.';
         await this.prisma.message.create({
-          data: { conversationId: convoId!, role: 'assistant', content: emptyMsg } // Added ! to satisfy TypeScript as we know convoId is defined here
+          data: { conversationId: convoId!, role: 'assistant', content: emptyMsg }
         });
         return { conversationId: convoId, reply: emptyMsg };
       }
 
       // Save assistant reply
       await this.prisma.message.create({
-        data: {
-          conversationId: convoId!,
-          role: 'assistant',
-          content: reply,
-        }
+        data: { conversationId: convoId!, role: 'assistant', content: reply }
       });
 
       return { conversationId: convoId, reply };
     } catch (error) {
       if (error instanceof InternalServerErrorException) throw error;
-
       this.logger.error(`Chat failed: ${(error as Error).message}`);
       throw new InternalServerErrorException('Gagal menghubungi AI. Pastikan Ollama berjalan.');
     }
   }
-  /** Generates direct message without specific ComplianceBot prompt (used by BullMQ Worker) */
+
+  /** Generates direct message without ComplianceBot prompt (used by OCR/BullMQ) */
   async generateDirectMessage(prompt: string): Promise<string> {
     const url = `${this.ollamaUrl}/api/chat`;
     const payload = {
       model: this.model,
       messages: [{ role: 'user', content: prompt }],
       stream: false,
-      options: { temperature: 0.1, num_predict: 2048 }, // Low temperature for consistent JSON
+      options: { temperature: 0.1, num_predict: 2048 },
     };
 
     try {
@@ -186,15 +174,117 @@ export class ChatService {
       throw new InternalServerErrorException('Gagal menghubungi AI.');
     }
   }
-  /** System prompt for ComplianceBot */
-  private buildSystemPrompt(): string {
-    return [
+
+  /**
+   * RAG-lite: Retrieve relevant regulations & compliance rules
+   * based on keyword matching from the user's question.
+   */
+  private async retrieveContext(question: string): Promise<string> {
+    const keywords = this.extractKeywords(question);
+    if (keywords.length === 0) return '';
+
+    const searchConditions = keywords.map(k => ({
+      OR: [
+        { title: { contains: k, mode: 'insensitive' as const } },
+        { contentRaw: { contains: k, mode: 'insensitive' as const } },
+      ],
+    }));
+
+    // Query regulations
+    const regulations = await this.prisma.regulation.findMany({
+      where: { OR: searchConditions.flatMap(c => c.OR) },
+      select: {
+        title: true,
+        regulationNumber: true,
+        type: true,
+        issuedBy: true,
+        status: true,
+        sourceUrl: true,
+      },
+      take: 5,
+      orderBy: { issuedDate: 'desc' },
+    });
+
+    // Query compliance rules
+    const rules = await this.prisma.complianceRule.findMany({
+      where: {
+        isPublished: true,
+        OR: keywords.map(k => ({
+          OR: [
+            { title: { contains: k, mode: 'insensitive' as const } },
+            { description: { contains: k, mode: 'insensitive' as const } },
+          ],
+        })).flatMap(c => c.OR),
+      },
+      select: {
+        title: true,
+        description: true,
+        priority: true,
+        legalReferences: true,
+      },
+      take: 5,
+    });
+
+    if (regulations.length === 0 && rules.length === 0) return '';
+
+    let context = '\n\n--- DATA REFERENSI DARI DATABASE ---\n';
+
+    if (regulations.length > 0) {
+      context += '\n📜 REGULASI TERKAIT:\n';
+      for (const r of regulations) {
+        context += `- ${r.type} ${r.regulationNumber}: "${r.title}" (Diterbitkan oleh: ${r.issuedBy}, Status: ${r.status})`;
+        if (r.sourceUrl) context += ` [Sumber: ${r.sourceUrl}]`;
+        context += '\n';
+      }
+    }
+
+    if (rules.length > 0) {
+      context += '\n✅ KEWAJIBAN KEPATUHAN:\n';
+      for (const r of rules) {
+        const refs = Array.isArray(r.legalReferences) ? (r.legalReferences as string[]).join(', ') : '';
+        context += `- ${r.title}: ${r.description.substring(0, 150)}`;
+        if (refs) context += ` (Dasar hukum: ${refs})`;
+        context += ` [Prioritas: ${r.priority}]\n`;
+      }
+    }
+
+    context += '--- AKHIR DATA REFERENSI ---\n';
+    return context;
+  }
+
+  /** Extract meaningful keywords from user question */
+  private extractKeywords(question: string): string[] {
+    const stopWords = new Set([
+      'apa', 'adalah', 'yang', 'dan', 'atau', 'di', 'ke', 'dari',
+      'untuk', 'dengan', 'ini', 'itu', 'saya', 'kita', 'kami',
+      'bagaimana', 'cara', 'apakah', 'bisa', 'harus', 'perlu',
+      'mau', 'ingin', 'tolong', 'mohon', 'jelaskan', 'tentang',
+      'the', 'is', 'a', 'an', 'how', 'what', 'where', 'when',
+    ]);
+
+    return question
+      .toLowerCase()
+      .replace(/[^a-zA-Z0-9\s]/g, '')
+      .split(/\s+/)
+      .filter(w => w.length > 2 && !stopWords.has(w))
+      .slice(0, 5); // Max 5 keywords
+  }
+
+  /** System prompt with injected regulation context */
+  private buildSystemPrompt(context: string = ''): string {
+    const base = [
       'Kamu adalah ComplianceBot — asisten AI untuk kepatuhan hukum bisnis di Indonesia.',
       'Tugasmu membantu UMKM dan startup memahami kewajiban legal mereka.',
       'Jawab dalam Bahasa Indonesia yang jelas dan mudah dipahami.',
       'Berikan informasi tentang: perizinan usaha, NIB, NPWP, pajak, ketenagakerjaan, BPJS, dan regulasi terkait.',
-      'Jika tidak yakin, sampaikan bahwa ini informasi umum dan sarankan konsultasi dengan ahli hukum.',
-      'Jangan memberikan nasihat hukum resmi — hanya informasi umum.',
-    ].join(' ');
+      '',
+      'ATURAN PENTING:',
+      '1. Jika ada DATA REFERENSI di bawah, SELALU gunakan data tersebut sebagai dasar jawaban.',
+      '2. SELALU cantumkan sumber/dasar hukum di akhir jawaban dalam format: "📎 Sumber: [nama regulasi, nomor, URL jika ada]".',
+      '3. Jika data referensi tidak tersedia, jawab berdasarkan pengetahuan umum dan tambahkan catatan: "⚠️ Informasi ini bersifat umum. Silakan verifikasi di jdih.go.id atau konsultasi ahli hukum."',
+      '4. Jangan memberikan nasihat hukum resmi — hanya informasi umum berbasis data.',
+    ].join('\n');
+
+    return context ? `${base}\n${context}` : base;
   }
 }
