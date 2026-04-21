@@ -12,6 +12,7 @@ import {
   CreditCard,
   BookOpen,
   Settings,
+  LayoutPanelTop,
   Shield,
   Users,
   Database,
@@ -52,6 +53,7 @@ const adminLinks = [
   { href: '/admin/templates', label: 'Templates', icon: FileCode },
   { href: '/admin/articles', label: 'Artikel', icon: Newspaper },
   { href: '/admin/feature-flags', label: 'Target & Feature', icon: Flag },
+  { href: '/admin/cms', label: 'CMS Builder', icon: LayoutPanelTop },
 ];
 
 export function Sidebar({ variant = 'dashboard' }: SidebarProps) {
