@@ -10,6 +10,7 @@ import { SectorsModule } from './modules/sectors/sectors.module';
 import { DocumentsModule } from './modules/documents/documents.module';
 import { NotificationsModule } from './modules/notifications/notifications.module';
 import { ChatModule } from './modules/chat/chat.module';
+import { ArticlesModule } from './modules/articles/articles.module';
 
 @Module({
   imports: [
@@ -49,6 +50,7 @@ import { ChatModule } from './modules/chat/chat.module';
     DocumentsModule,
     NotificationsModule,
     ChatModule,
+    ArticlesModule,
   ],
 })
 export class AppModule {}

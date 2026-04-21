@@ -29,7 +29,7 @@ const dashboardLinks = [
   { href: '/checklist', label: 'Checklist', icon: ClipboardCheck },
   { href: '/documents', label: 'Dokumen', icon: FileText },
   { href: '/notifications', label: 'Notifikasi', icon: Bell },
-  { href: '/panduan', label: 'Panduan', icon: BookOpen },
+  { href: '/knowledge-base', label: 'Pusat Pengetahuan', icon: BookOpen },
   { href: '/billing', label: 'Langganan', icon: CreditCard },
   { href: '/settings', label: 'Pengaturan', icon: Settings },
 ];

@@ -24,3 +24,4 @@
 - [2026-04-20] 8e56f50 → feature/phase-12-doc-cms | [phase-13] feat: notifications module + /learn patterns
 - [2026-04-20] Fix: dashboard/chat/checklist pages missing (route group path issue), ChatModule + Ollama connected
 - [2026-04-21] f73a72c → feature/phase-12-doc-cms | [phase-13] feat: add ChatModule + fix dashboard/chat/checklist routes (9 files, +806 -8)
+- [2026-04-21] 048fb19 → feature/phase-12-doc-cms | [infra] fix: Docker build — OpenSSL + standalone + public dir
