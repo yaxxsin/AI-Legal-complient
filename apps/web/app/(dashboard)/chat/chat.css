@@ -100,3 +100,13 @@
   line-height: 1.5;
   color: hsl(var(--foreground) / 0.8);
 }
+
+/* ── Portal Resmi header block (🔗 Portal Resmi:) ── */
+.chat-bot-bubble .chat-md-portal-header {
+  margin-top: 0.75rem;
+  padding: 0.5rem 0.75rem;
+  border-radius: 0.625rem 0.625rem 0 0;
+  background: hsl(var(--primary) / 0.05);
+  border-left: 3px solid hsl(var(--primary) / 0.4);
+  font-size: 0.8rem;
+}

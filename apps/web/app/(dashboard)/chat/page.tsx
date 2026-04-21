@@ -262,6 +262,8 @@ function renderMarkdown(text: string): string {
     .replace(/^[-*]\s+(.+)$/gm, '<div class="chat-md-li"><span class="chat-md-bullet">•</span> $1</div>')
     // Source citation block: 📎 Sumber: ...
     .replace(/📎\s*Sumber:\s*(.+)/g, '<div class="chat-md-source">📎 <strong>Sumber:</strong> $1</div>')
+    // Portal resmi header: 🔗 Portal Resmi:
+    .replace(/🔗\s*Portal Resmi:/g, '<div class="chat-md-portal-header">🔗 <strong>Portal Resmi:</strong></div>')
     // Warning block: ⚠️ ...
     .replace(/⚠️\s*(.+)/g, '<div class="chat-md-warning">⚠️ $1</div>')
     // Double newlines → paragraph break
