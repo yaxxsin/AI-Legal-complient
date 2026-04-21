@@ -21,6 +21,7 @@ import { TeamsModule } from './modules/teams/teams.module';
 import { StorageModule } from './modules/storage/storage.module';
 import { ComplianceItemsModule } from './modules/compliance-items/compliance-items.module';
 import { RegulationSyncModule } from './modules/regulation-sync/regulation-sync.module';
+import { CmsModule } from './modules/cms/cms.module';
 import { BullModule } from '@nestjs/bullmq';
 
 @Module({
@@ -84,6 +85,7 @@ import { BullModule } from '@nestjs/bullmq';
     StorageModule,
     ComplianceItemsModule,
     RegulationSyncModule,
+    CmsModule,
   ],
 })
 export class AppModule {}
