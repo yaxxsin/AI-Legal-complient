@@ -4,10 +4,11 @@
 > Menunjuk ke phase state yang sedang aktif.
 
 ## ACTIVE
-- **Phase**: 14: Knowledge Base & FAQ
-- **State File**: phase-14.md
+- **Phase**: 15: Subscription & Billing
+- **State File**: phase-15.md
 - **Developer**: Engine AI
 - **Since**: 2026-04-21
+- **Status**: Researching Phase 15
 
 ## PHASE INDEX
 
@@ -29,8 +30,8 @@
 | 11 | Document Generator — 3 Templates | phase-11.md | ✅ | S | Phase 3 |
 | 12 | Document Generator — Complete + CMS | phase-12.md | ✅ | S | Phase 11 |
 | 13 | Regulatory Alerts & Notifications | phase-13.md | 🟡 | S | Phase 5 |
-| 14 | Knowledge Base & FAQ | phase-14.md | 🟡 | S | Phase 0 |
-| 15 | Subscription & Billing | phase-15.md | ⬜ | M | Phase 2 |
+| 14 | Knowledge Base & FAQ | phase-14.md | ✅ | S | Phase 0 |
+| 15 | Subscription & Billing | phase-15.md | 🟡 | M | Phase 2 |
 | 16 | Admin Panel | phase-16.md | ⬜ | M | Phase 2 |
 | 17 | Testing, Deploy & Launch | phase-17.md | ⬜ | M | All |
 

@@ -1,6 +1,6 @@
 # Phase 14: Knowledge Base & FAQ
 
-## STATUS: 🟡 In Progress
+## STATUS: ✅ Completed
 ## DEPENDENCY: Phase 0
 ## ESTIMASI: S (~1 jam)
 
@@ -8,9 +8,9 @@
 - [x] F-08-01: Article listing page + category filter
 - [x] Article detail page (markdown rendering via remark)
 - [x] Search: PostgreSQL tsvector (title + body)
-- [ ] SEO: generateMetadata(), canonical URL
+- [x] SEO: generateMetadata(), canonical URL
 - [x] Seed 20 artikel (6 kategori)
-- [ ] Admin article CMS (rich text editor via Tiptap)
+- [x] Admin article CMS (rich text editor via Tiptap)
 
 ## CONTEXT
 MOD-08 dari blueprint. Knowledge base artikel FAQ & panduan hukum.
@@ -19,8 +19,8 @@ Public access, SEO optimized. CTA box ke ComplianceBot.
 
 Blueprint ref: BAB 6 MOD-08 (F-08-01)
 
-## NOW: SEO metadata + admin CMS
-## NEXT: Add generateMetadata() SSR, admin article editor
+## NOW: Phase 14 complete
+## NEXT: Move to Phase 15 (Subscription & Billing)
 ## CRUMBS:
 - articles.module.ts, articles.service.ts, articles.controller.ts created
 - seed-articles.ts: 6 categories + 20 articles seeded
@@ -28,5 +28,5 @@ Blueprint ref: BAB 6 MOD-08 (F-08-01)
 - knowledge-base/page.tsx + [slug]/page.tsx + knowledge-base.css created
 - sidebar.tsx: /panduan → /knowledge-base
 - saved: 84c5251 → Knowledge Base full stack
-
+- saved: 2a9d4da → Format chat responses with markdown rendering
 
