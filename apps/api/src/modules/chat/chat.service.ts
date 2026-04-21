@@ -68,7 +68,34 @@ export class ChatService {
       );
     }
   }
+  /** Generates direct message without specific ComplianceBot prompt (used by BullMQ Worker) */
+  async generateDirectMessage(prompt: string): Promise<string> {
+    const url = `${this.ollamaUrl}/api/chat`;
+    const payload = {
+      model: this.model,
+      messages: [{ role: 'user', content: prompt }],
+      stream: false,
+      options: { temperature: 0.1, num_predict: 2048 }, // Low temperature for consistent JSON
+    };
 
+    try {
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+
+      if (!response.ok) {
+        throw new InternalServerErrorException(`AI service error: ${response.status}`);
+      }
+
+      const data = await response.json();
+      return data.message?.content || '{}';
+    } catch (error) {
+      this.logger.error(`Direct chat failed: ${(error as Error).message}`);
+      throw new InternalServerErrorException('Gagal menghubungi AI.');
+    }
+  }
   /** System prompt for ComplianceBot */
   private buildSystemPrompt(): string {
     return [

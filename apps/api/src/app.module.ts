@@ -1,5 +1,5 @@
 import { Module } from '@nestjs/common';
-import { ConfigModule } from '@nestjs/config';
+import { ConfigModule, ConfigService } from '@nestjs/config';
 import { LoggerModule } from 'nestjs-pino';
 import { PrismaModule } from './database/prisma.module';
 import { HealthModule } from './modules/health/health.module';
@@ -15,6 +15,8 @@ import { BillingModule } from './modules/billing/billing.module';
 import { ComplianceRulesModule } from './modules/compliance-rules/compliance-rules.module';
 import { RegulationsModule } from './modules/regulations/regulations.module';
 import { FeatureFlagsModule } from './modules/feature-flags/feature-flags.module';
+import { DocumentReviewModule } from './modules/document-review/document-review.module';
+import { BullModule } from '@nestjs/bullmq';
 
 @Module({
   imports: [
@@ -45,6 +47,18 @@ import { FeatureFlagsModule } from './modules/feature-flags/feature-flags.module
     // Database
     PrismaModule,
 
+    // Queue / Redis Setup
+    BullModule.forRootAsync({
+      imports: [ConfigModule],
+      useFactory: (config: ConfigService) => ({
+        connection: {
+          host: config.get<string>('REDIS_HOST', 'localhost'),
+          port: config.get<number>('REDIS_PORT', 6379),
+        },
+      }),
+      inject: [ConfigService],
+    }),
+
     // Feature modules
     HealthModule,
     AuthModule,
@@ -59,6 +73,7 @@ import { FeatureFlagsModule } from './modules/feature-flags/feature-flags.module
     ComplianceRulesModule,
     RegulationsModule,
     FeatureFlagsModule,
+    DocumentReviewModule,
   ],
 })
 export class AppModule {}

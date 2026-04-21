@@ -31,6 +31,7 @@ const dashboardLinks = [
   { href: '/chat', label: 'ComplianceBot', icon: MessageSquare },
   { href: '/checklist', label: 'Checklist', icon: ClipboardCheck },
   { href: '/documents', label: 'Dokumen', icon: FileText },
+  { href: '/document-review', label: 'Review Dokumen AI', icon: FileCode },
   { href: '/notifications', label: 'Notifikasi', icon: Bell },
   { href: '/knowledge-base', label: 'Pusat Pengetahuan', icon: BookOpen },
   { href: '/billing', label: 'Langganan', icon: CreditCard },

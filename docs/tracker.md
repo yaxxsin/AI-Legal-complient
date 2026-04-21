@@ -31,3 +31,7 @@
 - [2026-04-21] Phase 15 complete: Subscription & Billing via Midtrans, PDF Invoice
 - [2026-04-21] 84fe94f → feature/phase-12-doc-cms | [phase-14] feat: separate server/client components for SEO, finalize Admin CMS for articles
 - [2026-04-21] Phase 16 complete: Admin Panel Setup, Backend Master Data Modules, Frontend Stubs
+- [2026-04-21] Phase 17 complete: E2E Testing (Playwright/Jest), Sentry Monitoring, Production Deploy configs
+- [2026-04-21] Phase 18 complete: Document Review AI (BullMQ, PDF Parse, Ollama Document Risk Analysis)
+- [2026-04-21] [HOTFIX] Fixed API build errors (multer types, ConfigService, pdf-parse ES import)
+- [2026-04-21] [HOTFIX] Fixed Next.js build error by adding missing react-dropzone dependency

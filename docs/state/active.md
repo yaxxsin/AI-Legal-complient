@@ -4,11 +4,11 @@
 > Menunjuk ke phase state yang sedang aktif.
 
 ## ACTIVE
-- **Phase**: 16: Admin Panel
-- **State File**: phase-16.md
+- **Phase**: 18: Document Review AI
+- **State File**: phase-18.md
 - **Developer**: Engine AI
 - **Since**: 2026-04-21
-- **Status**: Phase 16 Completed
+- **Status**: Phase 18 Completed
 
 ## PHASE INDEX
 
@@ -33,13 +33,13 @@
 | 14 | Knowledge Base & FAQ | phase-14.md | ✅ | S | Phase 0 |
 | 15 | Subscription & Billing | phase-15.md | ✅ | M | Phase 2 |
 | 16 | Admin Panel | phase-16.md | ✅ | M | Phase 2 |
-| 17 | Testing, Deploy & Launch | phase-17.md | ⬜ | M | All |
+| 17 | Testing, Deploy & Launch | phase-17.md | ✅ | M | All |
 
 ### 🚀 Phase 2 — Extensions (Phase 18-21)
 
 | Phase | Name | State File | Status | Estimasi | Dependency |
 |-------|------|-----------|--------|----------|------------|
-| 18 | Document Review AI | phase-18.md | ⬜ | M | Phase 11 |
+| 18 | Document Review AI | phase-18.md | ✅ | M | Phase 11 |
 | 19 | HR Compliance Module | phase-19.md | ⬜ | S | Phase 0 |
 | 20 | Multi-User & Team | phase-20.md | ⬜ | M | Phase 2 |
 | 21 | OSS/NIB Wizard & Evidence | phase-21.md | ⬜ | M | Phase 9 |
