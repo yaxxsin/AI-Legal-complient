@@ -1,6 +1,7 @@
 import { Injectable, Logger, InternalServerErrorException, NotFoundException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../../database/prisma.service';
+import { PasalService } from './pasal.service';
 
 @Injectable()
 export class ChatService {
@@ -11,6 +12,7 @@ export class ChatService {
   constructor(
     private readonly config: ConfigService,
     private readonly prisma: PrismaService,
+    private readonly pasalService: PasalService,
   ) {
     this.ollamaUrl = this.config.get<string>('OLLAMA_BASE_URL') ?? 'http://localhost:11434';
     this.model = this.config.get<string>('OLLAMA_MODEL') ?? 'llama3.2:1b';
@@ -80,9 +82,12 @@ export class ChatService {
       take: 10,
     });
 
-    // RAG-lite: retrieve relevant context from DB
-    const context = await this.retrieveContext(message);
-    const systemPrompt = this.buildSystemPrompt(context);
+    // RAG-lite: retrieve relevant context from DB + Pasal.id
+    const [dbContext, pasalContext] = await Promise.all([
+      this.retrieveContext(message),
+      this.pasalService.searchForContext(message),
+    ]);
+    const systemPrompt = this.buildSystemPrompt(dbContext + pasalContext);
 
     const url = `${this.ollamaUrl}/api/chat`;
     const chatMessages = [
