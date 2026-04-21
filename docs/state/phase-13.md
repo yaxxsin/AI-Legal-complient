@@ -57,5 +57,6 @@ Blueprint ref: BAB 6 MOD-07 (F-07-01, F-07-02)
 - Chat frontend reads token from document.cookie `access_token`
 
 ## CRUMBS:
+- saved: f73a72c → ChatModule + dashboard/chat/checklist routes
 
 ## CHECKPOINT: 2026-04-20T17:34 — notifications done, dashboard/chat/checklist pages fixed, ChatModule + Ollama connected, /learn patterns saved

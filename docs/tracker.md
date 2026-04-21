@@ -23,3 +23,4 @@
 - [2026-04-20] c6d8ce7 → feature/phase-12-doc-cms | [infra] refactor: migrate Supabase to Docker/PostgreSQL/JWT (56 files, +2686 -927)
 - [2026-04-20] 8e56f50 → feature/phase-12-doc-cms | [phase-13] feat: notifications module + /learn patterns
 - [2026-04-20] Fix: dashboard/chat/checklist pages missing (route group path issue), ChatModule + Ollama connected
+- [2026-04-21] f73a72c → feature/phase-12-doc-cms | [phase-13] feat: add ChatModule + fix dashboard/chat/checklist routes (9 files, +806 -8)

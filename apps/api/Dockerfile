@@ -1,6 +1,7 @@
 # ── Build stage ─────────────────────────────
 FROM node:20-alpine AS builder
 
+RUN apk add --no-cache openssl
 RUN corepack enable && corepack prepare pnpm@latest --activate
 
 WORKDIR /app
@@ -22,6 +23,7 @@ RUN pnpm --filter api build
 # ── Production stage ────────────────────────
 FROM node:20-alpine AS runner
 
+RUN apk add --no-cache openssl
 RUN corepack enable && corepack prepare pnpm@latest --activate
 
 WORKDIR /app
