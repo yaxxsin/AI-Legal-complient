@@ -19,23 +19,27 @@ import {
   Newspaper,
   LogOut,
   Flag,
+  BriefcaseBusiness,
 } from 'lucide-react';
 import { useAuth } from '@/hooks/use-auth';
+import { useCurrentUser } from '@/hooks/use-user';
+import { useFeatureFlags } from '@/hooks/use-feature-flags';
 
 interface SidebarProps {
   variant?: 'dashboard' | 'admin';
 }
 
 const dashboardLinks = [
-  { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
-  { href: '/chat', label: 'ComplianceBot', icon: MessageSquare },
-  { href: '/checklist', label: 'Checklist', icon: ClipboardCheck },
-  { href: '/documents', label: 'Dokumen', icon: FileText },
-  { href: '/document-review', label: 'Review Dokumen AI', icon: FileCode },
-  { href: '/notifications', label: 'Notifikasi', icon: Bell },
-  { href: '/knowledge-base', label: 'Pusat Pengetahuan', icon: BookOpen },
-  { href: '/billing', label: 'Langganan', icon: CreditCard },
-  { href: '/settings', label: 'Pengaturan', icon: Settings },
+  { featureKey: 'menu-dashboard', href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
+  { featureKey: 'menu-chat', href: '/chat', label: 'ComplianceBot', icon: MessageSquare },
+  { featureKey: 'menu-checklist', href: '/checklist', label: 'Checklist', icon: ClipboardCheck },
+  { featureKey: 'menu-documents', href: '/documents', label: 'Dokumen', icon: FileText },
+  { featureKey: 'menu-doc-review', href: '/document-review', label: 'Review Dokumen AI', icon: FileCode },
+  { featureKey: 'menu-hr', href: '/hr', label: 'Kalkulator HR', icon: BriefcaseBusiness },
+  { featureKey: 'menu-notifications', href: '/notifications', label: 'Notifikasi', icon: Bell },
+  { featureKey: 'menu-knowledge', href: '/knowledge-base', label: 'Pusat Pengetahuan', icon: BookOpen },
+  { featureKey: 'menu-billing', href: '/billing', label: 'Langganan', icon: CreditCard },
+  { featureKey: 'menu-settings', href: '/settings', label: 'Pengaturan', icon: Settings },
 ];
 
 const adminLinks = [
@@ -50,8 +54,17 @@ const adminLinks = [
 
 export function Sidebar({ variant = 'dashboard' }: SidebarProps) {
   const pathname = usePathname();
-  const links = variant === 'admin' ? adminLinks : dashboardLinks;
   const { signOut } = useAuth();
+  
+  const { data: user } = useCurrentUser();
+  const { isFeatureEnabled } = useFeatureFlags();
+
+  let links = variant === 'admin' ? adminLinks : dashboardLinks;
+  
+  // Filter features if we are in dashboard mode
+  if (variant === 'dashboard') {
+    links = (links as any[]).filter(link => isFeatureEnabled(link.featureKey, user?.plan));
+  }
 
   return (
     <aside className="hidden lg:flex flex-col w-64 border-r border-border bg-card/50 backdrop-blur-sm">

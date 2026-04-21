@@ -7,6 +7,9 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from '../../database/prisma.service';
 import { CreateBusinessProfileDto, UpdateBusinessProfileDto, UpdateStepDto } from './dto';
+import { ChatService } from '../chat/chat.service';
+import * as Tesseract from 'tesseract.js';
+const pdfParse = require('pdf-parse');
 
 /** Plan-based profile limits */
 const PLAN_LIMITS: Record<string, number> = {
@@ -20,7 +23,10 @@ const PLAN_LIMITS: Record<string, number> = {
 export class BusinessProfilesService {
   private readonly logger = new Logger(BusinessProfilesService.name);
 
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly chatService: ChatService,
+  ) {}
 
   /** Create new business profile (check plan limit) */
   async create(userId: string, userPlan: string, dto: CreateBusinessProfileDto) {
@@ -87,14 +93,14 @@ export class BusinessProfilesService {
     return this.prisma.businessProfile.update({
       where: { id },
       data: {
-        ...(dto.entityType !== undefined && { entityType: dto.entityType }),
+        ...(dto.entityType && { entityType: dto.entityType }),
         ...(dto.businessName !== undefined && { businessName: dto.businessName }),
-        ...(dto.establishmentDate !== undefined && {
+        ...(dto.establishmentDate ? {
           establishmentDate: new Date(dto.establishmentDate),
-        }),
-        ...(dto.sectorId !== undefined && { sectorId: dto.sectorId }),
-        ...(dto.subSectorIds !== undefined && { subSectorIds: dto.subSectorIds }),
-        ...(dto.employeeCount !== undefined && { employeeCount: dto.employeeCount }),
+        } : {}),
+        ...(dto.sectorId ? { sectorId: dto.sectorId } : {}),
+        ...(dto.subSectorIds ? { subSectorIds: dto.subSectorIds } : {}),
+        ...(dto.employeeCount !== undefined && { employeeCount: typeof dto.employeeCount === 'string' ? parseInt(dto.employeeCount as string, 10) : dto.employeeCount }),
         ...(dto.annualRevenue !== undefined && { annualRevenue: dto.annualRevenue }),
         ...(dto.city !== undefined && { city: dto.city }),
         ...(dto.province !== undefined && { province: dto.province }),
@@ -142,15 +148,15 @@ export class BusinessProfilesService {
         };
       case 2:
         return {
-          ...(data.sectorId !== undefined && { sectorId: data.sectorId }),
-          ...(data.subSectorIds !== undefined && { subSectorIds: data.subSectorIds }),
+          ...(data.sectorId ? { sectorId: data.sectorId } : {}),
+          ...(data.subSectorIds ? { subSectorIds: data.subSectorIds } : {}),
         };
       case 3:
         return {
           ...(data.businessName !== undefined && { businessName: data.businessName }),
-          ...(data.establishmentDate !== undefined && {
+          ...(data.establishmentDate ? {
             establishmentDate: new Date(data.establishmentDate as string),
-          }),
+          } : {}),
           ...(data.city !== undefined && { city: data.city }),
           ...(data.province !== undefined && { province: data.province }),
         };
@@ -168,6 +174,72 @@ export class BusinessProfilesService {
         };
       default:
         throw new BadRequestException('Step tidak valid (1-5)');
+    }
+  }
+
+  /**
+   * Auto-scan document for Onboarding (KTP/NPWP/NIB)
+   * Uses pdf-parse or Tesseract.js, then Ollama to extract JSON fields.
+   */
+  async scanDocument(userId: string, file: Express.Multer.File) {
+    let extractedText = '';
+    const ext = file.originalname.split('.').pop()?.toLowerCase();
+
+    // 1. Text Extraction
+    try {
+      if (ext === 'pdf') {
+        const parsed = await pdfParse(file.buffer);
+        extractedText = parsed.text;
+      } else if (['jpg', 'jpeg', 'png', 'webp'].includes(ext || '')) {
+        const tesseractResult = await Tesseract.recognize(file.buffer, 'ind', {
+          logger: (m) => this.logger.debug(`Tesseract: ${m.status} - ${m.progress}`),
+        });
+        extractedText = tesseractResult.data.text;
+      } else {
+        throw new BadRequestException('Format file tidak didukung untuk OCR (Hanya PDF/Image)');
+      }
+    } catch (e) {
+      this.logger.error(`OCR Extraction failed: ${(e as Error).message}`);
+      throw new BadRequestException('Gagal membaca isi dokumen. Pastikan file jelas dan tidak diproteksi password.');
+    }
+
+    if (!extractedText.trim()) {
+      throw new BadRequestException('Tidak ada teks yang dapat ditemukan di dokumen tersebut.');
+    }
+
+    // Trim text to prevent token overflow (approx limit 3000 chars for local fast extraction)
+    const truncatedText = extractedText.substring(0, 3000);
+
+    // 2. AI Extraction via Ollama
+    const prompt = `Anda adalah sistem data extraction otomatis OCR.
+Ekstrak informasi berikut dari teks acak NIB / NPWP / KTP berikut ini.
+Keluarkan HANYA dalam bentuk format JSON persis seperti di bawah ini tanpa markdown, tanpa teks tambahan apapun.
+Jika ada field yang tidak ditemukan, beri tanda string kosong "".
+{
+  "businessName": "Nama Perusahaan (misal PT XYZ / Johan)",
+  "npwp": "Nomor NPWP 15/16 digit",
+  "nibNumber": "Nomor NIB (biasanya 13 digit angka)",
+  "entityType": "Pilih salah satu sesuai jenis badan hukum (PT/CV/Firma/Yayasan/Perorangan/Lainnya)",
+  "city": "Kota/Kabupaten alamat",
+  "province": "Provinsi alamat"
+}
+
+TEKS DOKUMEN:
+---
+${truncatedText}
+---`;
+
+    try {
+      const aiResponse = await this.chatService.generateDirectMessage(prompt);
+      const jsonMatch = aiResponse.match(/\{[\s\S]*\}/);
+      if (jsonMatch) {
+         return JSON.parse(jsonMatch[0]);
+      } else {
+         return JSON.parse(aiResponse);
+      }
+    } catch (e) {
+      this.logger.error(`AI Extraction failed: ${(e as Error).message}`);
+      throw new BadRequestException('Gagal mengekstrak data JSON dari dokumen. Format dokumen mungkin kurang standar.');
     }
   }
 }

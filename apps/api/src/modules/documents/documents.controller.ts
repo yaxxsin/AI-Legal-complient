@@ -11,12 +11,18 @@ import {
   UseGuards,
   Req,
 } from '@nestjs/common';
+import { ApiTags, ApiBearerAuth } from '@nestjs/swagger';
 import { DocumentsService } from './documents.service';
 import { CreateTemplateDto, UpdateTemplateDto, GenerateDocumentDto } from './dto';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
+import { FeatureFlagGuard } from '../../common/guards/feature-flag.guard';
+import { RequireFeature } from '../../common/decorators/feature-flag.decorator';
 
+@ApiTags('documents')
+@ApiBearerAuth()
+@UseGuards(JwtAuthGuard, FeatureFlagGuard)
+@RequireFeature('menu-documents')
 @Controller('documents')
-@UseGuards(JwtAuthGuard)
 export class DocumentsController {
   constructor(private readonly documentsService: DocumentsService) {}
 

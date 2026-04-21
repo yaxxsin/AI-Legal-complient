@@ -35,3 +35,20 @@
 - [2026-04-21] Phase 18 complete: Document Review AI (BullMQ, PDF Parse, Ollama Document Risk Analysis)
 - [2026-04-21] [HOTFIX] Fixed API build errors (multer types, ConfigService, pdf-parse ES import)
 - [2026-04-21] [HOTFIX] Fixed Next.js build error by adding missing react-dropzone dependency
+- [2026-04-21] Saved [phase-17/18] changes to origin/feature/phase-12-doc-cms
+- [2026-04-21] Phase 19 complete: HR Compliance Module (BPJS & Pesangon Calculator UI + API)
+- [2026-04-21] [HOTFIX] Fixed API startup crash by adding ChatService to ChatModule exports
+- [2026-04-21] Phase 20 complete: Multi-User & Team (DB schema, API TeamsModule, Settings UI, Invitation UI)
+- [2026-04-21] [HOTFIX] Fixed Next.js build error by resolving incorrect hook variables in Team Invitation page
+- [2026-04-21] [HOTFIX] Fixed Teams API returning 404 by rebuilding the API docker container to load TeamsModule
+- [2026-04-21] Implemented Feature Flags Toggle: Sidebar now dynamically loads `useFeatureFlags()` hook, and Admin Panel has a functional CRUD UI for managing flags.
+- [2026-04-21] Changed Admin Feature Flags UI to use a pre-defined select menu for existing features
+- [2026-04-21] Integrated `FeatureFlagGuard` and `@RequireFeature()` decorator to API backend to block requests to disabled features at the controller level (403 Forbidden).
+- [2026-04-21] [HOTFIX] Fixed Feature Flag syncing logic where disabling a feature in Admin Dashboard wasn't hiding it for regular users due to `/public` endpoint query filtering and hook fallback defaults.
+- [2026-04-21] Enhanced Admin Feature Flags UI: Replaced comma-separated text input for "Target Plans" with interactive Checkbox UI for easier plan (Free, Starter, Growth, Business) restriction mapping.
+- [2026-04-21] Expanded `ChatModule` to support Chat History (`model Conversation` & `model Message`), added Memory context window for Ollama, and exposed `GET /api/v1/chat/conversations` endpoints.
+- [2026-04-21] Connected Chat History endpoints to Frontend React UI: The UI now restores the user's latest conversation on mount and prevents chat state loss when switching tabs. Added '+ Chat Baru' button.
+- [2026-04-21] Phase 21 complete: OSS/NIB Wizard & Evidence Storage. Added MinIO file upload handling for checklist evidence (`ComplianceItemsModule`), KBLI-based generator API, and UI integration. Free users can upload files mapping to checking items (`evidenceUrl`).
+- [2026-04-21] Fixed 500 error on `/business-profiles/:id` PUT endpoint where empty strings or parsing errors bypassed undefined check and evaluated to `Invalid Date` or invalid UUIDs.
+- [2026-04-21] Implemented AI Auto-Scanner (OCR) for Onboarding wizard using `pdf-parse` & `tesseract.js` + `Ollama`. Added `POST /api/v1/business-profiles/ocr/scan` route, allowing users to automatically populate Business Profile data from physical NIB/NPWP JPGs/PDFs.
+- [2026-04-21] Upgraded Checklist UX (Phase 21.1): Auto-generation of KBLI Checklist upon visiting the page if items are empty. Added inline evidence preview component (`iframe` for PDFs, `img` for standard images) natively integrated with MinIO URLs.

@@ -77,6 +77,8 @@ services:
       JWT_SECRET: local-dev-jwt-secret-change-in-production-min32chars
       JWT_EXPIRATION: 1h
       JWT_REFRESH_EXPIRATION: 30d
+      REDIS_HOST: redis
+      REDIS_PORT: "6379"
       REDIS_URL: redis://redis:6379
       MINIO_ENDPOINT: minio
       MINIO_PORT: "9000"

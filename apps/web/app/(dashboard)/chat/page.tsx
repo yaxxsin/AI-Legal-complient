@@ -33,9 +33,50 @@ export default function ChatPage() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [isInitializing, setIsInitializing] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [conversationId, setConversationId] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
+
+  /** Fetch latest conversation on mount */
+  useEffect(() => {
+    async function loadLatestConversation() {
+      try {
+        const token = getCookie('access_token');
+        const resList = await fetch(`${API_URL}/chat/conversations`, {
+          headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}) }
+        });
+        if (!resList.ok) throw new Error('Failed to load history');
+        
+        const listData = await resList.json();
+        const latestConvo = listData.data?.[0]; // Assuming it is sorted by desc
+        
+        if (latestConvo) {
+          setConversationId(latestConvo.id);
+          const resDetail = await fetch(`${API_URL}/chat/conversations/${latestConvo.id}`, {
+            headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}) }
+          });
+          const detailData = await resDetail.json();
+          if (detailData.data?.messages) {
+            setMessages(
+              detailData.data.messages.map((m: any) => ({
+                id: m.id,
+                role: m.role,
+                content: m.content,
+                timestamp: new Date(m.createdAt)
+              }))
+            );
+          }
+        }
+      } catch (err) {
+        console.error('Error loading chat history:', err);
+      } finally {
+        setIsInitializing(false);
+      }
+    }
+    loadLatestConversation();
+  }, []);
 
   /** Auto-scroll to bottom on new messages */
   useEffect(() => {
@@ -67,7 +108,7 @@ export default function ChatPage() {
           'Content-Type': 'application/json',
           ...(token ? { Authorization: `Bearer ${token}` } : {}),
         },
-        body: JSON.stringify({ message: text }),
+        body: JSON.stringify({ message: text, conversationId }),
       });
 
       if (!res.ok) {
@@ -75,6 +116,12 @@ export default function ChatPage() {
       }
 
       const data = await res.json();
+      
+      // Update local conversationId state if the server created a new one
+      if (data.data?.conversationId) {
+        setConversationId(data.data.conversationId);
+      }
+
       const botMsg: Message = {
         id: crypto.randomUUID(),
         role: 'assistant',
@@ -98,19 +145,43 @@ export default function ChatPage() {
     }
   }
 
+  function handleNewChat() {
+    setConversationId(null);
+    setMessages([]);
+    setInput('');
+    setError(null);
+  }
+
+  if (isInitializing) {
+    return (
+      <div className="flex flex-col items-center justify-center h-full text-center space-y-4">
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+        <p className="text-sm text-muted-foreground">Memuat riwayat percakapan...</p>
+      </div>
+    );
+  }
+
   return (
-    <div className="flex flex-col h-[calc(100vh-8rem)] max-w-3xl mx-auto animate-fade-in">
+    <div className="flex flex-col h-[calc(100vh-8rem)] max-w-3xl mx-auto animate-fade-in relative">
       {/* Header */}
-      <div className="flex items-center gap-3 pb-4 border-b border-border">
-        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary to-accent flex items-center justify-center">
-          <Bot className="w-5 h-5 text-white" />
+      <div className="flex items-center justify-between pb-4 border-b border-border">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary to-accent flex items-center justify-center">
+            <Bot className="w-5 h-5 text-white" />
+          </div>
+          <div>
+            <h1 className="font-heading font-bold text-lg">ComplianceBot</h1>
+            <p className="text-xs text-muted-foreground">
+              AI assistant untuk kepatuhan hukum bisnis
+            </p>
+          </div>
         </div>
-        <div>
-          <h1 className="font-heading font-bold text-lg">ComplianceBot</h1>
-          <p className="text-xs text-muted-foreground">
-            AI assistant untuk kepatuhan hukum bisnis
-          </p>
-        </div>
+        <button
+          onClick={handleNewChat}
+          className="text-xs px-3 py-1.5 rounded-lg border border-border bg-card hover:bg-muted font-medium transition-colors"
+        >
+          + Chat Baru
+        </button>
       </div>
 
       {/* Messages area */}

@@ -12,10 +12,13 @@ import { FileInterceptor } from '@nestjs/platform-express';
 import { ApiTags, ApiBearerAuth, ApiConsumes, ApiBody } from '@nestjs/swagger';
 import { DocumentReviewService } from './document-review.service';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
+import { FeatureFlagGuard } from '../../common/guards/feature-flag.guard';
+import { RequireFeature } from '../../common/decorators/feature-flag.decorator';
 
 @ApiTags('document-review')
 @ApiBearerAuth()
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, FeatureFlagGuard)
+@RequireFeature('menu-doc-review')
 @Controller('document-review')
 export class DocumentReviewController {
   constructor(private readonly reviewService: DocumentReviewService) {}

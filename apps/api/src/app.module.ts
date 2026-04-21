@@ -16,6 +16,10 @@ import { ComplianceRulesModule } from './modules/compliance-rules/compliance-rul
 import { RegulationsModule } from './modules/regulations/regulations.module';
 import { FeatureFlagsModule } from './modules/feature-flags/feature-flags.module';
 import { DocumentReviewModule } from './modules/document-review/document-review.module';
+import { HrModule } from './modules/hr/hr.module';
+import { TeamsModule } from './modules/teams/teams.module';
+import { StorageModule } from './modules/storage/storage.module';
+import { ComplianceItemsModule } from './modules/compliance-items/compliance-items.module';
 import { BullModule } from '@nestjs/bullmq';
 
 @Module({
@@ -74,6 +78,10 @@ import { BullModule } from '@nestjs/bullmq';
     RegulationsModule,
     FeatureFlagsModule,
     DocumentReviewModule,
+    HrModule,
+    TeamsModule,
+    StorageModule,
+    ComplianceItemsModule,
   ],
 })
 export class AppModule {}

@@ -11,8 +11,14 @@ import {
   Put,
   Req,
   UseGuards,
+  UseInterceptors,
+  UploadedFile,
+  ParseFilePipe,
+  MaxFileSizeValidator,
+  FileTypeValidator,
 } from '@nestjs/common';
-import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiOperation, ApiTags, ApiConsumes, ApiBody } from '@nestjs/swagger';
+import { FileInterceptor } from '@nestjs/platform-express';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
@@ -80,5 +86,34 @@ export class BusinessProfilesController {
     @CurrentUser() user: { id: string },
   ): Promise<void> {
     await this.service.remove(id, user.id);
+  }
+
+  @Post('ocr/scan')
+  @ApiOperation({ summary: 'Scan dokumen (NIB/NPWP/KTP) menggunakan OCR' })
+  @ApiConsumes('multipart/form-data')
+  @ApiBody({
+    schema: {
+       type: 'object', properties: { file: { type: 'string', format: 'binary' } }
+    }
+  })
+  @UseInterceptors(FileInterceptor('file'))
+  async scanDocument(
+    @CurrentUser() user: { id: string },
+    @UploadedFile(
+      new ParseFilePipe({
+        validators: [
+          new MaxFileSizeValidator({ maxSize: 1024 * 1024 * 5 }), // 5MB
+          new FileTypeValidator({ fileType: '.(png|jpeg|jpg|pdf|webp)' }),
+        ],
+      }),
+    )
+    file: Express.Multer.File,
+  ) {
+    const extractedData = await this.service.scanDocument(user.id, file);
+    return {
+      success: true,
+      message: 'Sukses membaca data dokumen',
+      data: extractedData,
+    };
   }
 }

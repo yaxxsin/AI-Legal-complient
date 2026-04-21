@@ -60,6 +60,32 @@ export default function OnboardingPage() {
 
   const apiUrl = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001/api/v1';
 
+  useEffect(() => {
+    async function checkExistingDraft() {
+      try {
+        const token = getCookie('access_token');
+        if (!token) return;
+        const res = await fetch(`${apiUrl}/business-profiles`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        if (res.ok) {
+          const body = await res.json();
+          // API might return bare array or wrapped in data
+          const profiles = Array.isArray(body) ? body : body.data || [];
+          if (profiles.length > 0) {
+            setProfileId(profiles[0].id);
+            // Optionally update state to match draft
+            if (profiles[0].entityType) updateField('entityType', profiles[0].entityType);
+            if (profiles[0].onboardingStep) setCurrentStep(profiles[0].onboardingStep);
+          }
+        }
+      } catch {
+        // silent fail
+      }
+    }
+    checkExistingDraft();
+  }, [apiUrl]);
+
   /** Get auth headers from JWT cookie */
   function getHeaders(): Record<string, string> {
     const token = getCookie('access_token');
@@ -210,6 +236,49 @@ export default function OnboardingPage() {
     setData((prev) => ({ ...prev, [field]: value }));
   }
 
+  /** Scan Upload file (OCR) */
+  async function handleScanDocument(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setError('');
+    setIsSubmitting(true);
+    try {
+      const token = getCookie('access_token');
+      const formData = new FormData();
+      formData.append('file', file);
+
+      const res = await fetch(`${apiUrl}/business-profiles/ocr/scan`, {
+        method: 'POST',
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+        body: formData,
+      });
+
+      if (!res.ok) {
+        throw new Error('Gagal scan dokumen. Pastikan gambar jelas atau format PDF.');
+      }
+      const raw = await res.json();
+      const extracted = raw.data;
+
+      // Update state if value exists
+      if (extracted.businessName) updateField('businessName', extracted.businessName);
+      if (extracted.npwp) updateField('npwp', extracted.npwp);
+      if (extracted.nibNumber) updateField('nibNumber', extracted.nibNumber);
+      if (extracted.entityType) {
+        // Map string to standard ID/value if our combo supports it, currently it's just strings
+        updateField('entityType', extracted.entityType.toLowerCase());
+      }
+      if (extracted.city) updateField('city', extracted.city);
+      if (extracted.province) updateField('province', extracted.province);
+
+      alert('Teks berhasil dienkstrak! Cek otomatis field yang terisi.');
+    } catch(err) {
+      setError((err as Error).message);
+    } finally {
+      setIsSubmitting(false);
+    }
+  }
+
   return (
     <div className="max-w-2xl mx-auto py-4 animate-fade-in">
       <WizardProgress
@@ -219,6 +288,34 @@ export default function OnboardingPage() {
       />
 
       <div className="rounded-xl border border-border bg-card p-6">
+        
+        {/* Banner Auto-Scan */}
+        {currentStep === 1 && (
+          <div className="mb-6 p-5 bg-gradient-to-r from-primary/10 to-accent/10 border border-primary/20 rounded-xl relative overflow-hidden">
+            <div className="relative z-10 flex flex-col items-center text-center">
+              <h3 className="font-heading font-semibold text-lg text-primary mb-1">Mager isi manual? 😎✨</h3>
+              <p className="text-sm text-muted-foreground mb-4 max-w-md">
+                Upload foto/PDF Nomor Induk Berusaha (NIB) atau NPWP Perusahaan dan Artificial Intelligence kami akan mengisikan form secara otomatis!
+              </p>
+              
+              <label className="relative cursor-pointer bg-primary text-primary-foreground font-semibold px-4 py-2 rounded-lg text-sm shadow-md hover:shadow-lg transition-all hover:-translate-y-0.5">
+                {isSubmitting ? 'Menganalisa Milsedetik...' : '📸 Upload Teks & Scan (AI)'}
+                <input 
+                  type="file" 
+                  className="hidden" 
+                  accept=".pdf,.jpg,.jpeg,.png"
+                  onChange={handleScanDocument}
+                  disabled={isSubmitting}
+                />
+              </label>
+            </div>
+            
+            {/* Background embellishment */}
+            <div className="absolute -top-10 -left-10 w-32 h-32 bg-primary/20 rounded-full blur-3xl mix-blend-screen" />
+            <div className="absolute -bottom-10 -right-10 w-32 h-32 bg-accent/20 rounded-full blur-3xl mix-blend-screen" />
+          </div>
+        )}
+
         {/* Step content */}
         {currentStep === 1 && (
           <WizardStep1

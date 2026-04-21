@@ -5,21 +5,32 @@ import { useAuthStore } from '@/stores/auth-store';
 import {
   ClipboardCheck,
   CheckCircle2,
-  Circle,
-  AlertTriangle,
   Clock,
+  AlertTriangle,
   Filter,
   Loader2,
+  UploadCloud,
+  FileText
 } from 'lucide-react';
+
+interface BusinessProfile {
+  id: string;
+  businessName: string;
+}
 
 interface ChecklistItem {
   id: string;
   title: string;
   description: string;
-  category: string;
+  categoryId: string;
   priority: 'HIGH' | 'MEDIUM' | 'LOW';
-  status: 'COMPLETED' | 'IN_PROGRESS' | 'NOT_STARTED';
-  dueDate: string | null;
+  status: 'pending' | 'completed';
+  evidenceUrl: string | null;
+  rule: {
+    category: {
+      name: string;
+    }
+  };
 }
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001/api/v1';
@@ -32,58 +43,102 @@ function getCookie(name: string): string | null {
 
 export default function ChecklistPage() {
   const { user } = useAuthStore();
+  const [profile, setProfile] = useState<BusinessProfile | null>(null);
   const [items, setItems] = useState<ChecklistItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [filter, setFilter] = useState<string>('ALL');
 
   useEffect(() => {
-    fetchChecklist();
+    fetchData();
   }, []);
 
-  async function fetchChecklist() {
+  async function fetchData() {
     setIsLoading(true);
     try {
       const token = getCookie('access_token');
-      const res = await fetch(`${API_URL}/compliance/checklist`, {
+      // 1. Fetch profile
+      const profRes = await fetch(`${API_URL}/business-profiles`, {
         headers: token ? { Authorization: `Bearer ${token}` } : {},
       });
+      if (!profRes.ok) throw new Error('Gagal memuat profil bisnis');
+      const profData = await profRes.json();
+      
+      const profiles = Array.isArray(profData) ? profData : profData.data || [];
+      const bp = profiles?.[0];
+      if (!bp) {
+        setItems([]);
+        setIsLoading(false);
+        return;
+      }
+      setProfile(bp);
 
-      if (!res.ok) throw new Error('Gagal memuat checklist');
-
-      const data = await res.json();
-      setItems(data.data ?? []);
+      // 2. Fetch checklist items
+      const itemRes = await fetch(`${API_URL}/compliance-items/business-profile/${bp.id}`, {
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      });
+      if (!itemRes.ok) throw new Error('Gagal memuat checklist kepatuhan');
+      
+      const itemData = await itemRes.json();
+      setItems(itemData.data ?? []);
     } catch {
-      setError('Gagal memuat checklist kepatuhan.');
+      setError('Gagal mengambil data sistem.');
     } finally {
       setIsLoading(false);
     }
   }
 
-  async function toggleStatus(id: string, newStatus: string) {
+  async function generateChecklist() {
+    if (!profile) return;
+    setIsLoading(true);
     try {
       const token = getCookie('access_token');
-      await fetch(`${API_URL}/compliance/checklist/${id}/status`, {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        },
-        body: JSON.stringify({ status: newStatus }),
+      const res = await fetch(`${API_URL}/compliance-items/generate/${profile.id}`, {
+        method: 'POST',
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      });
+      if (!res.ok) throw new Error('Gagal generate checklist');
+      const data = await res.json();
+      setItems(data.data ?? []);
+    } catch {
+      setError('Gagal di-generate.');
+    } finally {
+      setIsLoading(false);
+    }
+  }
+
+  async function uploadEvidence(itemId: string, file: File) {
+    if (!file) return;
+    try {
+      const token = getCookie('access_token');
+      const formData = new FormData();
+      formData.append('file', file);
+
+      const res = await fetch(`${API_URL}/compliance-items/${itemId}/evidence`, {
+        method: 'POST',
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+        body: formData,
       });
 
+      if (!res.ok) {
+        throw new Error('Upload gagal');
+      }
+
+      const resData = await res.json();
+      
+      // Update local state
       setItems((prev) =>
         prev.map((item) =>
-          item.id === id ? { ...item, status: newStatus as ChecklistItem['status'] } : item,
+          item.id === itemId ? { ...item, status: 'completed', evidenceUrl: resData.data.evidenceUrl } : item,
         ),
       );
-    } catch {
-      // Silently fail — optimistic update will revert on refresh
+    } catch (err) {
+      alert('Upload failed. Must be PDF/Image and max 5MB.');
     }
   }
 
   const filtered = filter === 'ALL' ? items : items.filter((i) => i.status === filter);
-  const completedCount = items.filter((i) => i.status === 'COMPLETED').length;
+  const completedCount = items.filter((i) => i.status === 'completed').length;
   const progress = items.length > 0 ? Math.round((completedCount / items.length) * 100) : 0;
 
   return (
@@ -92,34 +147,44 @@ export default function ChecklistPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-heading font-bold tracking-tight">
-            Checklist Kepatuhan
+            Checklist Kewajiban Hukum (OSS/NIB)
           </h1>
           <p className="text-sm text-muted-foreground mt-1">
-            Daftar kewajiban hukum yang harus dipenuhi bisnis Anda
+            Mendukung semua paket (termasuk Free). Upload NIB, NPWP, dan KBLI-based checklist.
           </p>
         </div>
+        {items.length === 0 && profile && !isLoading && (
+          <button
+            onClick={generateChecklist}
+            className="px-4 py-2 bg-gradient-to-r from-primary to-accent text-primary-foreground font-semibold rounded-xl text-sm hover:opacity-90"
+          >
+            Generate by KBLI
+          </button>
+        )}
       </div>
 
       {/* Progress bar */}
-      <div className="p-5 rounded-2xl border border-border bg-card">
-        <div className="flex items-center justify-between mb-3">
-          <span className="text-sm font-medium">Progress Kepatuhan</span>
-          <span className="text-sm font-heading font-bold text-primary">
-            {completedCount}/{items.length} ({progress}%)
-          </span>
+      {items.length > 0 && (
+        <div className="p-5 rounded-2xl border border-border bg-card">
+          <div className="flex items-center justify-between mb-3">
+            <span className="text-sm font-medium">Progress Kepatuhan</span>
+            <span className="text-sm font-heading font-bold text-primary">
+              {completedCount}/{items.length} ({progress}%)
+            </span>
+          </div>
+          <div className="h-3 bg-muted rounded-full overflow-hidden">
+            <div
+              className="h-full bg-gradient-to-r from-primary to-accent rounded-full transition-all duration-500"
+              style={{ width: `${progress}%` }}
+            />
+          </div>
         </div>
-        <div className="h-3 bg-muted rounded-full overflow-hidden">
-          <div
-            className="h-full bg-gradient-to-r from-primary to-accent rounded-full transition-all duration-500"
-            style={{ width: `${progress}%` }}
-          />
-        </div>
-      </div>
+      )}
 
       {/* Filter tabs */}
       <div className="flex items-center gap-2">
         <Filter className="w-4 h-4 text-muted-foreground" />
-        {['ALL', 'NOT_STARTED', 'IN_PROGRESS', 'COMPLETED'].map((f) => (
+        {['ALL', 'pending', 'completed'].map((f) => (
           <button
             key={f}
             onClick={() => setFilter(f)}
@@ -144,13 +209,21 @@ export default function ChecklistPage() {
           <AlertTriangle className="w-8 h-8 mx-auto mb-2 text-warning" />
           <p>{error}</p>
         </div>
+      ) : !profile ? (
+        <div className="text-center py-16 text-muted-foreground">
+          <ClipboardCheck className="w-10 h-10 mx-auto mb-3 text-muted-foreground/50" />
+          <p className="font-medium">Profil Bisnis Belum Ada</p>
+          <p className="text-sm mt-1">
+            Silakan siapkan profil bisnis Anda (Onboarding) untuk memunculkan Checklist Kewajiban Hukum.
+          </p>
+        </div>
       ) : filtered.length === 0 ? (
         <div className="text-center py-16 text-muted-foreground">
           <ClipboardCheck className="w-10 h-10 mx-auto mb-3 text-muted-foreground/50" />
           <p className="font-medium">Tidak ada item</p>
           <p className="text-sm mt-1">
             {filter === 'ALL'
-              ? 'Checklist belum tersedia. Selesaikan onboarding terlebih dahulu.'
+              ? 'Checklist belum di-generate. Silahkan klik Generate by KBLI.'
               : 'Tidak ada item dengan filter ini.'}
           </p>
         </div>
@@ -160,7 +233,7 @@ export default function ChecklistPage() {
             <ChecklistCard
               key={item.id}
               item={item}
-              onToggle={toggleStatus}
+              onUpload={uploadEvidence}
             />
           ))}
         </div>
@@ -172,41 +245,98 @@ export default function ChecklistPage() {
 /** Single checklist card */
 function ChecklistCard({
   item,
-  onToggle,
+  onUpload,
 }: {
   item: ChecklistItem;
-  onToggle: (id: string, status: string) => void;
+  onUpload: (id: string, file: File) => void;
 }) {
-  const nextStatus = item.status === 'COMPLETED' ? 'NOT_STARTED' : 'COMPLETED';
+  const [showPreview, setShowPreview] = useState(false);
+  
+  const ext = item.evidenceUrl?.split('?')[0].split('.').pop()?.toLowerCase();
+  const isImage = ['jpg', 'jpeg', 'png', 'webp', 'gif'].includes(ext || '');
+  const isPdf = ext === 'pdf';
 
   return (
-    <div className="flex items-start gap-4 p-4 rounded-xl border border-border bg-card hover:border-primary/20 transition-colors">
-      <button
-        onClick={() => onToggle(item.id, nextStatus)}
-        className="mt-0.5 shrink-0"
-      >
-        {item.status === 'COMPLETED' ? (
-          <CheckCircle2 className="w-5 h-5 text-success" />
-        ) : item.status === 'IN_PROGRESS' ? (
-          <Clock className="w-5 h-5 text-warning" />
-        ) : (
-          <Circle className="w-5 h-5 text-muted-foreground" />
-        )}
-      </button>
-      <div className="flex-1 min-w-0">
-        <p className={`font-medium text-sm ${item.status === 'COMPLETED' ? 'line-through text-muted-foreground' : ''}`}>
-          {item.title}
-        </p>
-        <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2">
-          {item.description}
-        </p>
-        <div className="flex items-center gap-2 mt-2">
-          <span className="text-[11px] px-2 py-0.5 rounded-full bg-muted text-muted-foreground">
-            {item.category}
-          </span>
-          <PriorityBadge priority={item.priority} />
+    <div className="flex flex-col gap-4 p-4 rounded-xl border border-border bg-card overscroll-contain hover:border-primary/20 transition-colors">
+      <div className="flex items-start gap-4">
+        <div className="mt-0.5 shrink-0">
+          {item.status === 'completed' ? (
+            <CheckCircle2 className="w-5 h-5 text-success" />
+          ) : (
+            <Clock className="w-5 h-5 text-warning" />
+          )}
+        </div>
+        <div className="flex-1 min-w-0">
+          <div className="flex items-start justify-between">
+            <div>
+              <p className={`font-medium text-sm ${item.status === 'completed' ? 'line-through text-muted-foreground' : ''}`}>
+                {item.title}
+              </p>
+              <p className="text-xs text-muted-foreground mt-0.5 max-w-lg">
+                {item.description}
+              </p>
+            </div>
+            {item.status === 'completed' && item.evidenceUrl && (
+              <div className="flex flex-col gap-2 shrink-0">
+                 <button 
+                  onClick={() => setShowPreview(!showPreview)}
+                  className="text-xs text-primary flex items-center justify-center gap-1 hover:bg-primary/20 bg-primary/10 px-3 py-1.5 rounded-lg font-medium transition-colors"
+                >
+                  <FileText className="w-3.5 h-3.5" /> {showPreview ? 'Tutup Bukti' : 'Lihat Bukti'}
+                </button>
+              </div>
+            )}
+          </div>
+          
+          <div className="flex items-center justify-between mt-3">
+            <div className="flex items-center gap-2">
+              <PriorityBadge priority={item.priority} />
+            </div>
+
+            <label className="text-xs px-3 py-1.5 flex-shrink-0 rounded-lg border border-border bg-muted/50 cursor-pointer hover:bg-muted font-medium flex items-center gap-1.5 transition-colors">
+              <UploadCloud className="w-3.5 h-3.5" />
+              <span>Upload Bukti</span>
+              <input 
+                type="file" 
+                className="hidden" 
+                accept=".pdf,.png,.jpg,.jpeg" 
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (file) onUpload(item.id, file);
+                }}
+              />
+            </label>
+          </div>
         </div>
       </div>
+
+      {/* Inline Preview Section */}
+      {showPreview && item.evidenceUrl && (
+        <div className="w-full mt-2 pt-4 border-t border-border animate-fade-in">
+          <div className="bg-muted/30 rounded-lg p-2 border border-border">
+            {isImage ? (
+              <img 
+                src={item.evidenceUrl} 
+                alt="Evidence Preview" 
+                className="max-w-full h-auto max-h-[500px] object-contain rounded-md mx-auto"
+                loading="lazy"
+              />
+            ) : isPdf ? (
+              <iframe 
+                src={item.evidenceUrl} 
+                className="w-full h-[500px] rounded-md border-0"
+                title="Evidence PDF Preview"
+              />
+            ) : (
+              <div className="py-8 text-center text-muted-foreground text-sm flex flex-col items-center">
+                 <FileText className="w-8 h-8 opacity-50 mb-2" />
+                 <p>Format file ini tidak dapat di-preview secara langsung.</p>
+                 <a href={item.evidenceUrl} target="_blank" rel="noreferrer" className="text-primary hover:underline mt-2 inline-block">Download File</a>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -228,9 +358,8 @@ function PriorityBadge({ priority }: { priority: string }) {
 function filterLabel(f: string): string {
   const labels: Record<string, string> = {
     ALL: 'Semua',
-    NOT_STARTED: 'Belum',
-    IN_PROGRESS: 'Proses',
-    COMPLETED: 'Selesai',
+    pending: 'Tertunda',
+    completed: 'Selesai',
   };
   return labels[f] ?? f;
 }

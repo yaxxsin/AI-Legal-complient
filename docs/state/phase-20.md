@@ -1,6 +1,6 @@
 # Phase 20: Multi-User & Team (Phase 2b)
 
-## STATUS: ⬜ Not Started
+## STATUS: 🟡 In Progress
 ## DEPENDENCY: Phase 2
 ## ESTIMASI: M (~2 jam)
 
@@ -17,6 +17,12 @@ Multi-user collaboration. RLS policies update for team-scoped access.
 
 Blueprint ref: BAB 6 MOD-12
 
-## NOW: -
+## PLAN STEPS
+1. [x] **Step 1: DB Schema** (Create Team, TeamMember, TeamInvitation models)
+2. [x] **Step 2: API Module** (TeamsModule, Service, Controller)
+3. [x] **Step 3: Frontend Team UI** (Settings -> Manage Team, Invites)
+4. [x] **Step 4: Integrasi List Member & Invite User**
+
+## NOW: Verify Build & End Phase 20
 ## NEXT: -
-## CRUMBS: -
+## CRUMBS: Phase 20 Completed

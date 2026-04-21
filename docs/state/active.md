@@ -4,11 +4,19 @@
 > Menunjuk ke phase state yang sedang aktif.
 
 ## ACTIVE
-- **Phase**: 18: Document Review AI
-- **State File**: phase-18.md
+- **Phase**: 20: Multi-User & Team
+- **State File**: phase-21.md
 - **Developer**: Engine AI
 - **Since**: 2026-04-21
-- **Status**: Phase 18 Completed
+- **Status**: Completed Checklist Auto-Generate & Preview
+
+NOW.Task: 
+NOW.Step:
+1. Install minio dependency
+2. Create MinioService
+3. Create compliance-items backend API
+4. Create Frontend Upload Checklist UI
+5. Testing and Validation
 
 ## PHASE INDEX
 
@@ -40,8 +48,8 @@
 | Phase | Name | State File | Status | Estimasi | Dependency |
 |-------|------|-----------|--------|----------|------------|
 | 18 | Document Review AI | phase-18.md | ✅ | M | Phase 11 |
-| 19 | HR Compliance Module | phase-19.md | ⬜ | S | Phase 0 |
-| 20 | Multi-User & Team | phase-20.md | ⬜ | M | Phase 2 |
+| 19 | HR Compliance Module | phase-19.md | ✅ | S | Phase 0 |
+| 20 | Multi-User & Team | phase-20.md | ✅ | M | Phase 2 |
 | 21 | OSS/NIB Wizard & Evidence | phase-21.md | ⬜ | M | Phase 9 |
 
 ## DEPENDENCY GRAPH

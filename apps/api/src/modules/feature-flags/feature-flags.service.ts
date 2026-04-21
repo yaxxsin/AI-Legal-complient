@@ -24,8 +24,7 @@ export class FeatureFlagsService {
 
   async findActive() {
     return this.prisma.featureFlag.findMany({
-      where: { enabled: true },
-      select: { key: true, targetPlans: true, targetUsers: true },
+      select: { key: true, enabled: true, targetPlans: true, targetUsers: true },
     });
   }
 

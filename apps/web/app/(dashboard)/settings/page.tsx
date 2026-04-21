@@ -4,7 +4,9 @@ import { useState } from 'react';
 import { useAuth } from '@/hooks/use-auth';
 import { useCurrentUser } from '@/hooks/use-user';
 
-type SettingsTab = 'profile' | 'security' | 'account';
+type SettingsTab = 'profile' | 'team' | 'security' | 'account';
+
+import { TeamTab } from './team-components';
 
 const PASSWORD_REGEX = /^(?=.*[A-Z])(?=.*\d)/;
 
@@ -13,6 +15,7 @@ export default function SettingsPage() {
 
   const tabs: { id: SettingsTab; label: string; icon: string }[] = [
     { id: 'profile', label: 'Profil', icon: '👤' },
+    { id: 'team', label: 'Tim', icon: '👥' },
     { id: 'security', label: 'Keamanan', icon: '🔐' },
     { id: 'account', label: 'Akun', icon: '⚙️' },
   ];
@@ -41,6 +44,7 @@ export default function SettingsPage() {
 
       {/* Tab Content */}
       {activeTab === 'profile' && <ProfileTab />}
+      {activeTab === 'team' && <TeamTab />}
       {activeTab === 'security' && <SecurityTab />}
       {activeTab === 'account' && <AccountTab />}
     </div>
