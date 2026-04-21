@@ -1,0 +1,65 @@
+/* ─── ComplianceBot Chat Markdown Styles ─── */
+/* Prefix: chat- to prevent cross-phase conflicts */
+
+.chat-bot-bubble {
+  line-height: 1.7;
+  overflow-wrap: break-word;
+  word-wrap: break-word;
+}
+
+/* ── Headers ── */
+.chat-bot-bubble h3.chat-md-h3 {
+  font-size: 0.95rem;
+  font-weight: 700;
+  margin: 0.75rem 0 0.375rem;
+  color: hsl(var(--foreground));
+}
+
+.chat-bot-bubble h3.chat-md-h3:first-child {
+  margin-top: 0;
+}
+
+.chat-bot-bubble h4.chat-md-h4 {
+  font-size: 0.9rem;
+  font-weight: 600;
+  margin: 0.625rem 0 0.25rem;
+  color: hsl(var(--foreground));
+}
+
+/* ── Bold text — inline, no breaking ── */
+.chat-bot-bubble strong {
+  font-weight: 600;
+  color: hsl(var(--foreground));
+  white-space: normal;
+}
+
+/* ── List items — padding-based (no flex, prevents word-break in bold) ── */
+.chat-bot-bubble .chat-md-li {
+  padding: 0.25rem 0 0.25rem 1.75rem;
+  position: relative;
+  line-height: 1.6;
+}
+
+.chat-bot-bubble .chat-md-num {
+  position: absolute;
+  left: 0;
+  font-weight: 600;
+  color: hsl(var(--primary));
+}
+
+.chat-bot-bubble .chat-md-bullet {
+  position: absolute;
+  left: 0.25rem;
+  color: hsl(var(--primary));
+}
+
+/* ── Paragraph spacing ── */
+.chat-md-break {
+  height: 0.625rem;
+}
+
+.chat-bot-bubble br + br {
+  display: block;
+  content: '';
+  margin-top: 0.375rem;
+}

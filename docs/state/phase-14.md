@@ -27,5 +27,6 @@ Blueprint ref: BAB 6 MOD-08 (F-08-01)
 - use-articles.ts hook created
 - knowledge-base/page.tsx + [slug]/page.tsx + knowledge-base.css created
 - sidebar.tsx: /panduan → /knowledge-base
+- saved: 84c5251 → Knowledge Base full stack
 
 

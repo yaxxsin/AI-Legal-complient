@@ -1,5 +1,7 @@
 'use client';
 
+import './chat.css';
+
 import { useState, useRef, useEffect } from 'react';
 import { useAuthStore } from '@/stores/auth-store';
 import {
@@ -162,6 +164,33 @@ export default function ChatPage() {
   );
 }
 
+/** Smart markdown → HTML renderer for bot responses.
+ *  Handles both proper newline markdown AND inline lists (common with small LLMs). */
+function renderMarkdown(text: string): string {
+  let processed = text
+    // Pre-process: split inline numbered lists ("1. foo 2. bar" → newlines)
+    .replace(/(\S)\s+(\d+)\.\s+/g, '$1\n$2. ')
+    // Pre-process: split inline bullets ("* foo * bar" → newlines)
+    .replace(/(\S)\s+\*\s+/g, '$1\n* ')
+    .replace(/(\S)\s+-\s+/g, '$1\n- ');
+
+  return processed
+    // Headers
+    .replace(/^### (.+)$/gm, '<h4 class="chat-md-h4">$1</h4>')
+    .replace(/^## (.+)$/gm, '<h3 class="chat-md-h3">$1</h3>')
+    .replace(/^# (.+)$/gm, '<h3 class="chat-md-h3">$1</h3>')
+    // Bold
+    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+    // Numbered lists: "1. item"
+    .replace(/^(\d+)\.\s+(.+)$/gm, '<div class="chat-md-li"><span class="chat-md-num">$1.</span> $2</div>')
+    // Bullet lists: "- item" or "* item"
+    .replace(/^[-*]\s+(.+)$/gm, '<div class="chat-md-li"><span class="chat-md-bullet">•</span> $1</div>')
+    // Double newlines → paragraph break
+    .replace(/\n{2,}/g, '<div class="chat-md-break"></div>')
+    // Single newlines → line break
+    .replace(/\n/g, '<br/>');
+}
+
 /** Single chat bubble */
 function ChatBubble({ message }: { message: Message }) {
   const isUser = message.role === 'user';
@@ -173,13 +202,16 @@ function ChatBubble({ message }: { message: Message }) {
         }`}>
           {isUser ? <User className="w-4 h-4" /> : <Bot className="w-4 h-4" />}
         </div>
-        <div className={`rounded-2xl px-4 py-2.5 text-sm leading-relaxed ${
-          isUser
-            ? 'bg-primary text-primary-foreground rounded-br-md'
-            : 'bg-muted rounded-bl-md'
-        }`}>
-          {message.content}
-        </div>
+        {isUser ? (
+          <div className="rounded-2xl px-4 py-2.5 text-sm leading-relaxed bg-primary text-primary-foreground rounded-br-md">
+            {message.content}
+          </div>
+        ) : (
+          <div
+            className="chat-bot-bubble rounded-2xl px-4 py-2.5 text-sm leading-relaxed bg-muted rounded-bl-md"
+            dangerouslySetInnerHTML={{ __html: renderMarkdown(message.content) }}
+          />
+        )}
       </div>
     </div>
   );
