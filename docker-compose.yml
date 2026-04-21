@@ -88,6 +88,8 @@ services:
       MINIO_USE_SSL: "false"
       OLLAMA_BASE_URL: http://host.docker.internal:11434
       OLLAMA_MODEL: qwen2.5
+      PASAL_API_URL: https://pasal.id/api/v1
+      PASAL_API_TOKEN: pasal_mcp_57537fd3c78f_0a4b4f074b8409b52a0ad49211b5ac15c296d962cb7b105f
     ports:
       - "3001:3001"
 
