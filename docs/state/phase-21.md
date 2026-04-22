@@ -20,6 +20,6 @@ Supabase Storage: evidence/{profile_id}/{item_id}/
 
 Blueprint ref: BAB 6 MOD-13, MOD-14
 
-## NOW: Phase 21 Complete ✅ (Redesigned as Post-NIB Compliance Roadmap)
-## NEXT: /save or /park
-## CRUMBS: schema(OssStep+category,deadlineDay,isRecurring,complianceScore,skNumber), svc(13-step roadmap,scoring,deadline calc), ctrl(activate,score,deadlines), client(NIB activation,score card,category filter,deadline tab), sidebar(Roadmap Kepatuhan), tsc ✅
+## NOW: Merge Complete ✅ (Roadmap + Checklist + Tax Notifications)
+## NEXT: /save
+## CRUMBS: svc(+@Cron tax-deadline-reminders,+NotificationsService DI), mod(+NotificationsModule import), client(+ChecklistTab,4 tabs), sidebar(-menu-checklist), checklist/page(→redirect), tsc ✅

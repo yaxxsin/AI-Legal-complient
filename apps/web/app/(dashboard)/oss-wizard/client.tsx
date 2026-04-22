@@ -6,6 +6,7 @@ import {
   Circle,
   Clock,
   Upload,
+  UploadCloud,
   FileText,
   Image as ImageIcon,
   AlertTriangle,
@@ -22,6 +23,7 @@ import {
   FileCheck,
   Receipt,
   CalendarDays,
+  ClipboardCheck,
 } from 'lucide-react';
 import './oss-wizard.css';
 
@@ -118,7 +120,7 @@ export default function OssWizardClient() {
   const [registration, setRegistration] = useState<OssRegistration | null>(null);
   const [scoreData, setScoreData] = useState<ScoreBreakdown | null>(null);
   const [deadlines, setDeadlines] = useState<Deadline[]>([]);
-  const [activeTab, setActiveTab] = useState<'roadmap' | 'deadlines' | 'evidence'>('roadmap');
+  const [activeTab, setActiveTab] = useState<'roadmap' | 'checklist' | 'deadlines' | 'evidence'>('roadmap');
   const [activeCategory, setActiveCategory] = useState<string>('all');
   const [expandedStep, setExpandedStep] = useState<string | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
@@ -430,6 +432,7 @@ export default function OssWizardClient() {
       <div className="flex border-b border-border">
         {([
           { key: 'roadmap', label: 'Roadmap' },
+          { key: 'checklist', label: 'Checklist KBLI' },
           { key: 'deadlines', label: `Deadline Pajak (${deadlines.length})` },
           { key: 'evidence', label: 'Galeri Bukti' },
         ] as const).map((tab) => (
@@ -486,6 +489,10 @@ export default function OssWizardClient() {
             onPreview={setPreviewUrl}
           />
         </>
+      )}
+
+      {activeTab === 'checklist' && (
+        <ChecklistTab profileId={profile.id} />
       )}
 
       {activeTab === 'deadlines' && (
@@ -869,6 +876,249 @@ function PreviewModal({ url, onClose }: { url: string; onClose: () => void }) {
           )}
         </div>
       </div>
+    </div>
+  );
+}
+
+/* ────── Checklist KBLI Tab (merged from /checklist) ────── */
+
+interface ChecklistItem {
+  id: string;
+  title: string;
+  description: string;
+  categoryId: string;
+  priority: 'HIGH' | 'MEDIUM' | 'LOW';
+  status: 'pending' | 'completed';
+  evidenceUrl: string | null;
+  notes: string | null;
+  rule: { category: { name: string } };
+}
+
+function ChecklistTab({ profileId }: { profileId: string }) {
+  const [items, setItems] = useState<ChecklistItem[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [generating, setGenerating] = useState(false);
+  const [checklistFilter, setChecklistFilter] = useState<string>('ALL');
+
+  useEffect(() => {
+    fetchChecklist();
+  }, [profileId]);
+
+  async function fetchChecklist() {
+    setLoading(true);
+    try {
+      const res = await fetch(`${API_URL}/compliance-items/business-profile/${profileId}`, {
+        headers: authHeaders(),
+      });
+      if (res.ok) {
+        const json = await res.json();
+        setItems(json.data ?? []);
+      }
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function generateChecklist() {
+    setGenerating(true);
+    try {
+      const res = await fetch(`${API_URL}/compliance-items/generate/${profileId}`, {
+        method: 'POST',
+        headers: authHeaders(),
+      });
+      if (res.ok) {
+        const json = await res.json();
+        setItems(json.data ?? []);
+      }
+    } finally {
+      setGenerating(false);
+    }
+  }
+
+  async function uploadChecklistEvidence(itemId: string, file: File) {
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      const res = await fetch(`${API_URL}/compliance-items/${itemId}/evidence`, {
+        method: 'POST',
+        headers: authHeaders(),
+        body: formData,
+      });
+      if (res.ok) {
+        const json = await res.json();
+        setItems((prev) =>
+          prev.map((item) =>
+            item.id === itemId
+              ? { ...item, status: 'completed', evidenceUrl: json.data.evidenceUrl }
+              : item,
+          ),
+        );
+      }
+    } catch {
+      alert('Upload gagal. Pastikan file PDF/gambar dan max 5MB.');
+    }
+  }
+
+  if (loading) {
+    return (
+      <div className="flex justify-center py-12">
+        <Loader2 className="w-6 h-6 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  if (items.length === 0) {
+    return (
+      <div className="text-center py-16">
+        <ClipboardCheck className="w-10 h-10 mx-auto mb-3 text-muted-foreground/40" />
+        <p className="font-medium">Checklist KBLI Belum Di-generate</p>
+        <p className="text-sm text-muted-foreground mt-1 mb-4">
+          Generate checklist kewajiban hukum berdasarkan KBLI bisnis Anda.
+        </p>
+        <button
+          onClick={generateChecklist}
+          disabled={generating}
+          className="px-4 py-2 bg-gradient-to-r from-primary to-accent text-primary-foreground font-semibold rounded-xl text-sm hover:opacity-90 disabled:opacity-50 flex items-center gap-2 mx-auto"
+        >
+          {generating ? <Loader2 className="w-4 h-4 animate-spin" /> : <ClipboardCheck className="w-4 h-4" />}
+          Generate by KBLI
+        </button>
+      </div>
+    );
+  }
+
+  const completedCount = items.filter((i) => i.status === 'completed').length;
+  const progress = Math.round((completedCount / items.length) * 100);
+  const filtered = checklistFilter === 'ALL' ? items : items.filter((i) => i.status === checklistFilter);
+
+  return (
+    <div className="space-y-4">
+      {/* Progress */}
+      <div className="p-4 rounded-xl border border-border bg-card">
+        <div className="flex items-center justify-between mb-2">
+          <span className="text-sm font-medium">Progress Checklist</span>
+          <span className="text-sm font-heading font-bold text-primary">
+            {completedCount}/{items.length} ({progress}%)
+          </span>
+        </div>
+        <div className="h-2 bg-muted rounded-full overflow-hidden">
+          <div
+            className="h-full bg-gradient-to-r from-primary to-accent rounded-full transition-all duration-500"
+            style={{ width: `${progress}%` }}
+          />
+        </div>
+      </div>
+
+      {/* Filter */}
+      <div className="flex items-center gap-2">
+        {[
+          { key: 'ALL', label: 'Semua' },
+          { key: 'pending', label: 'Tertunda' },
+          { key: 'completed', label: 'Selesai' },
+        ].map((f) => (
+          <button
+            key={f.key}
+            onClick={() => setChecklistFilter(f.key)}
+            className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
+              checklistFilter === f.key
+                ? 'bg-primary text-primary-foreground'
+                : 'bg-muted text-muted-foreground hover:text-foreground'
+            }`}
+          >
+            {f.label}
+          </button>
+        ))}
+      </div>
+
+      {/* Items */}
+      <div className="space-y-2">
+        {filtered.map((item) => (
+          <ChecklistItemCard key={item.id} item={item} onUpload={uploadChecklistEvidence} />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+/** Single KBLI checklist item card */
+function ChecklistItemCard({
+  item,
+  onUpload,
+}: {
+  item: ChecklistItem;
+  onUpload: (id: string, file: File) => void;
+}) {
+  const [showPreview, setShowPreview] = useState(false);
+  const ext = item.evidenceUrl?.split('?')[0].split('.').pop()?.toLowerCase();
+  const isImg = ['jpg', 'jpeg', 'png', 'webp', 'gif'].includes(ext || '');
+  const isPdf = ext === 'pdf';
+
+  const priorityStyles: Record<string, string> = {
+    HIGH: 'bg-destructive/10 text-destructive',
+    MEDIUM: 'bg-amber-500/10 text-amber-500',
+    LOW: 'bg-muted text-muted-foreground',
+  };
+
+  return (
+    <div className="flex flex-col gap-3 p-4 rounded-xl border border-border bg-card hover:border-primary/20 transition-colors">
+      <div className="flex items-start gap-3">
+        <div className="mt-0.5 shrink-0">
+          {item.status === 'completed' ? (
+            <CheckCircle2 className="w-5 h-5 text-emerald-500" />
+          ) : (
+            <Clock className="w-5 h-5 text-amber-500" />
+          )}
+        </div>
+        <div className="flex-1 min-w-0">
+          <p className={`font-medium text-sm ${item.status === 'completed' ? 'line-through text-muted-foreground' : ''}`}>
+            {item.title}
+          </p>
+          <p className="text-xs text-muted-foreground mt-0.5 max-w-lg">{item.description}</p>
+          <div className="flex items-center gap-2 mt-2">
+            <span className={`text-[11px] px-2 py-0.5 rounded-full ${priorityStyles[item.priority] ?? priorityStyles.LOW}`}>
+              {item.priority}
+            </span>
+            <label className="text-xs px-3 py-1.5 rounded-lg border border-border bg-muted/50 cursor-pointer hover:bg-muted font-medium flex items-center gap-1.5 transition-colors">
+              <UploadCloud className="w-3.5 h-3.5" />
+              Upload Bukti
+              <input
+                type="file"
+                className="hidden"
+                accept=".pdf,.png,.jpg,.jpeg"
+                onChange={(e) => {
+                  const f = e.target.files?.[0];
+                  if (f) onUpload(item.id, f);
+                }}
+              />
+            </label>
+            {item.evidenceUrl && (
+              <button
+                onClick={() => setShowPreview(!showPreview)}
+                className="text-xs text-primary flex items-center gap-1 hover:bg-primary/10 px-2.5 py-1.5 rounded-lg font-medium transition-colors"
+              >
+                <Eye className="w-3.5 h-3.5" /> {showPreview ? 'Tutup' : 'Lihat Bukti'}
+              </button>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {showPreview && item.evidenceUrl && (
+        <div className="w-full pt-3 border-t border-border animate-fade-in">
+          <div className="bg-muted/30 rounded-lg p-2 border border-border">
+            {isImg ? (
+              <img src={item.evidenceUrl} alt="Evidence" className="max-w-full h-auto max-h-[400px] object-contain rounded-md mx-auto" loading="lazy" />
+            ) : isPdf ? (
+              <iframe src={item.evidenceUrl} className="w-full h-[400px] rounded-md border-0" title="Evidence PDF" />
+            ) : (
+              <div className="py-6 text-center text-muted-foreground text-sm">
+                <FileText className="w-8 h-8 opacity-50 mx-auto mb-2" />
+                <a href={item.evidenceUrl} target="_blank" rel="noreferrer" className="text-primary hover:underline">Download File</a>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

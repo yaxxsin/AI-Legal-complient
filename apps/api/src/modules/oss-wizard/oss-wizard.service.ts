@@ -5,8 +5,10 @@ import {
   ForbiddenException,
   BadRequestException,
 } from '@nestjs/common';
+import { Cron } from '@nestjs/schedule';
 import { PrismaService } from '../../database/prisma.service';
 import { StorageService } from '../storage/storage.service';
+import { NotificationsService } from '../notifications/notifications.service';
 
 /* ──────────────────────────────────────────────
  * Post-NIB Compliance Roadmap Steps
@@ -139,6 +141,7 @@ export class OssWizardService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly storageService: StorageService,
+    private readonly notificationsService: NotificationsService,
   ) {}
 
   /** Activate NIB — creates roadmap for this profile */
@@ -478,5 +481,63 @@ export class OssWizardService {
     }
 
     return profile;
+  }
+
+  /* ──────────────────────────────────────────────
+   * CRON: Daily tax deadline reminders (08:00 WIB = 01:00 UTC)
+   * Sends notifications for H-7 and H-1 deadlines.
+   * ────────────────────────────────────────────── */
+  @Cron('0 1 * * *', { name: 'tax-deadline-reminders' })
+  async sendTaxDeadlineReminders() {
+    this.logger.log('Running tax deadline reminder cron...');
+
+    const registrations = await this.prisma.ossRegistration.findMany({
+      where: { status: { not: 'not_started' } },
+      include: {
+        steps: { where: { isRecurring: true } },
+        businessProfile: { select: { userId: true, businessName: true } },
+      },
+    });
+
+    const now = new Date();
+    const notifications: Array<{
+      userId: string;
+      type: string;
+      title: string;
+      body: string;
+      actionUrl: string;
+    }> = [];
+
+    for (const reg of registrations) {
+      for (const step of reg.steps) {
+        const nextDeadline = this.calcNextDeadline(step, now);
+        if (!nextDeadline) continue;
+
+        const diffMs = nextDeadline.getTime() - now.getTime();
+        const daysUntil = Math.ceil(diffMs / (1000 * 60 * 60 * 24));
+
+        if (daysUntil === 7 || daysUntil === 1) {
+          const urgency = daysUntil === 1 ? '🔴 BESOK' : '🟡 7 Hari Lagi';
+          const deadlineStr = nextDeadline.toLocaleDateString('id-ID', {
+            day: 'numeric', month: 'long', year: 'numeric',
+          });
+
+          notifications.push({
+            userId: reg.businessProfile.userId,
+            type: 'tax_deadline',
+            title: `${urgency}: ${step.title}`,
+            body: `Deadline ${step.title} untuk "${reg.businessProfile.businessName}" jatuh pada ${deadlineStr}. Segera selesaikan kewajiban ini.`,
+            actionUrl: '/oss-wizard',
+          });
+        }
+      }
+    }
+
+    if (notifications.length > 0) {
+      await this.notificationsService.createBatch(notifications);
+      this.logger.log(`Sent ${notifications.length} tax deadline reminders.`);
+    } else {
+      this.logger.log('No tax deadlines approaching. No reminders sent.');
+    }
   }
 }
