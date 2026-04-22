@@ -110,7 +110,9 @@ export class BillingService {
       };
     } catch (error) {
       this.logger.error(`[Checkout] Failed to create Snap token for order ${orderId}:`, error);
-      throw error;
+      throw new BadRequestException(
+        'Gagal membuat tagihan pembayaran. Pastikan konfigurasi payment gateway sudah benar.',
+      );
     }
   }
 

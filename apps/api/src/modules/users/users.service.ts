@@ -183,4 +183,37 @@ export class UsersService {
     this.logger.log(`User ${userId} role updated to ${role}`);
     return user;
   }
+
+  /** Update user plan for admin purposes */
+  async updatePlan(userId: string, plan: string) {
+    const allowedPlans = ['free', 'starter', 'growth', 'business'];
+    if (!allowedPlans.includes(plan)) {
+      throw new BadRequestException(`Plan tidak valid. Pilihan: ${allowedPlans.join(', ')}`);
+    }
+
+    await this.findById(userId);
+
+    const user = await this.prisma.user.update({
+      where: { id: userId },
+      data: { plan },
+      select: { id: true, email: true, plan: true },
+    });
+
+    this.logger.log(`User ${userId} plan updated to ${plan}`);
+    return user;
+  }
+
+  /** Admin hard-delete a user account */
+  async adminDeleteUser(userId: string, adminId: string): Promise<{ deleted: true; id: string }> {
+    if (userId === adminId) {
+      throw new BadRequestException('Tidak bisa menghapus akun sendiri');
+    }
+
+    await this.findById(userId);
+
+    await this.prisma.user.delete({ where: { id: userId } });
+
+    this.logger.log(`User ${userId} deleted by admin ${adminId}`);
+    return { deleted: true, id: userId };
+  }
 }

@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useCallback, use } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { ChevronLeft, Save, Plus, ArrowUp, ArrowDown, Trash2, LayoutPanelTop, Loader2, GripVertical } from 'lucide-react';
@@ -268,9 +268,8 @@ function ItemEditor({
    Main Page Component
    ============================================ */
 
-export default function AdminCmsEditorPage({ params }: { params: Promise<{ id: string }> }) {
-  const resolvedParams = use(params);
-  const { id: paramId } = resolvedParams;
+export default function AdminCmsEditorPage({ params }: { params: { id: string } }) {
+  const { id: paramId } = params;
   const isNew = paramId === 'new';
   const router = useRouter();
 

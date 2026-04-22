@@ -94,4 +94,25 @@ export class UsersController {
   ) {
     return this.usersService.updateRole(userId, role);
   }
+
+  @Patch(':id/plan')
+  @Roles('admin')
+  @ApiOperation({ summary: 'Change user plan (free/starter/growth/business)' })
+  async updatePlan(
+    @Param('id') userId: string,
+    @Body('plan') plan: string,
+  ) {
+    return this.usersService.updatePlan(userId, plan);
+  }
+
+  @Delete(':id')
+  @Roles('admin')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Delete user account (Admin only)' })
+  async adminDeleteUser(
+    @Param('id') userId: string,
+    @CurrentUser() admin: { id: string },
+  ) {
+    return this.usersService.adminDeleteUser(userId, admin.id);
+  }
 }

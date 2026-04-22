@@ -4,10 +4,10 @@ import { BillingService } from './billing.service';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { Request } from 'express';
 
-// Define typed request
+// JwtAuthGuard attaches full Prisma User object to req.user
 interface AuthenticatedRequest extends Request {
   user: {
-    userId: string;
+    id: string;
     email: string;
     role: string;
   };
@@ -30,7 +30,7 @@ export class BillingController {
   async getSubscription(@Req() req: AuthenticatedRequest) {
     return {
       success: true,
-      data: await this.billingService.getSubscription(req.user.userId),
+      data: await this.billingService.getSubscription(req.user.id),
     };
   }
 
@@ -39,7 +39,7 @@ export class BillingController {
   async getInvoices(@Req() req: AuthenticatedRequest) {
     return {
       success: true,
-      data: await this.billingService.getInvoices(req.user.userId),
+      data: await this.billingService.getInvoices(req.user.id),
     };
   }
 
@@ -50,7 +50,7 @@ export class BillingController {
     @Body() body: { planId: string; billingCycle: 'monthly' | 'annual' },
   ) {
     const res = await this.billingService.checkout(
-      req.user.userId,
+      req.user.id,
       body.planId,
       body.billingCycle,
     );
@@ -73,7 +73,7 @@ export class BillingController {
   async cancelSubscription(@Req() req: AuthenticatedRequest) {
     return {
       success: true,
-      data: await this.billingService.cancelSubscription(req.user.userId),
+      data: await this.billingService.cancelSubscription(req.user.id),
     };
   }
 
@@ -85,7 +85,7 @@ export class BillingController {
   ) {
     const pdfBuffer = await this.billingService.generateInvoicePdf(
       req.params.id as string,
-      req.user.userId,
+      req.user.id,
     );
     
     res.set({

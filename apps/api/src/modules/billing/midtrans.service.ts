@@ -13,14 +13,20 @@ export class MidtransService {
   private serverKey: string;
   private clientKey: string;
 
+  private isMock: boolean;
+
   constructor(private readonly configService: ConfigService) {
     this.isProduction = this.configService.get<string>('NODE_ENV') === 'production';
     this.serverKey = this.configService.get<string>('MIDTRANS_SERVER_KEY') || 'SB-Mid-server-DUMMY';
     this.clientKey = this.configService.get<string>('MIDTRANS_CLIENT_KEY') || 'SB-Mid-client-DUMMY';
 
-    // Validate keys on startup
-    if (this.serverKey === 'SB-Mid-server-DUMMY' || this.clientKey === 'SB-Mid-client-DUMMY') {
-      this.logger.warn('⚠️  Midtrans keys not configured! Using dummy keys. Payment will not work.');
+    // Detect placeholder/dummy keys → enable mock mode
+    this.isMock = this.serverKey.includes('DUMMY') ||
+      this.serverKey.includes('REPLACE') ||
+      this.serverKey.includes('YOUR');
+
+    if (this.isMock) {
+      this.logger.warn('⚠️  Midtrans keys not configured — running in MOCK mode. Checkout will simulate success.');
     } else {
       this.logger.log(`✅ Midtrans initialized (${this.isProduction ? 'PRODUCTION' : 'SANDBOX'} mode)`);
     }
@@ -50,6 +56,15 @@ export class MidtransService {
       name: string;
     }>;
   }) {
+    // Mock mode: return fake token so checkout flow doesn't crash
+    if (this.isMock) {
+      this.logger.warn(`[MOCK] Snap token requested for order ${payload.orderId} — returning mock`);
+      return {
+        token: `MOCK-SNAP-${payload.orderId}`,
+        redirect_url: `https://app.sandbox.midtrans.com/snap/v2/vtweb/MOCK-${payload.orderId}`,
+      };
+    }
+
     try {
       const parameter = {
         transaction_details: {
