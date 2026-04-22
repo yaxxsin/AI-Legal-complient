@@ -72,3 +72,7 @@
 - [2026-04-22] [HOTFIX] Fixed Midtrans checkout 500 — added mock mode for placeholder keys, wrapped error in BadRequestException.
 - [2026-04-22] 56b766c → feature/phase-25-multiprofile | [phase-25] feat: multi-profile separation with sidebar switcher + hotfixes (10 files, +314 -29)
 - [2026-04-22] Multi-profile separation: ProfileSwitcher in sidebar, useProfileStore (Zustand), oss-wizard uses activeProfileId, dashboard shows compliance score per profile, starter plan limit fixed (2→1). Chat: @SkipThrottle + better error messages.
+- [2026-04-22] 7afb5ad → feature/phase-25-multiprofile | [billing] feat: plan usage limits enforcement — UsageLimitService, chat/doc/review limits, expiry cron, admin plan sync (13 files, +281 -24)
+- [2026-04-22] Plan enforcement: UsageLimitService (chat 10/day free, docs 2/mo free 10/mo starter, review growth/business only), subscription expiry cron @3AM, admin updatePlan syncs User+Subscription, billing page uses user.plan as source of truth, pricing page highlights active plan.
+- [2026-04-22] 2be3c75 → feature/phase-25-multiprofile | [security] feat: admin/user session separation — middleware JWT role check, AdminGuard, login redirect, sidebar switcher (5 files, +97 -7)
+- [2026-04-22] Admin session separation: middleware decodes JWT role at edge, AdminGuard client component, admin layout wrapped, login redirects admin→/admin, sidebar shows admin/user switcher link.
