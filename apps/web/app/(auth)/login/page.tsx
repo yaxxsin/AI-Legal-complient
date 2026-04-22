@@ -22,6 +22,21 @@ function LoginForm() {
 
     const success = await signIn(email, password);
     if (success) {
+      // Fetch user profile to determine role-based redirect
+      try {
+        const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001/api/v1';
+        const res = await fetch(`${API_URL}/users/me`, { credentials: 'include' });
+        if (res.ok) {
+          const userData = await res.json();
+          const role = userData.data?.role ?? userData.role;
+          if ((role === 'admin' || role === 'super_admin') && redirect === '/dashboard') {
+            router.push('/admin');
+            return;
+          }
+        }
+      } catch {
+        // Fallback to default redirect
+      }
       router.push(redirect);
     } else {
       setError(authError ?? 'Email atau password salah');
