@@ -25,6 +25,8 @@ import {
   CalendarDays,
   ClipboardCheck,
 } from 'lucide-react';
+import { useProfileStore } from '@/stores/profile-store';
+import { useProfiles } from '@/hooks/use-profiles';
 import './oss-wizard.css';
 
 /* ────── Types ────── */
@@ -122,13 +124,8 @@ export default function OssWizardClient() {
   const [nibForm, setNibForm] = useState({ nibNumber: '', nibIssuedDate: '', skNumber: '' });
   const [isActivating, setIsActivating] = useState(false);
 
-  const fetchProfile = useCallback(async () => {
-    const res = await fetch(`${API_URL}/business-profiles`, { credentials: 'include' });
-    if (!res.ok) return null;
-    const json = await res.json();
-    const profiles = Array.isArray(json) ? json : json.data || [];
-    return profiles[0] ?? null;
-  }, []);
+  // Use global profile store instead of hardcoded profiles[0]
+  const { activeProfile: storeProfile, activeProfileId: storeProfileId } = useProfiles();
 
   const fetchRegistration = useCallback(async (profileId: string) => {
     const res = await fetch(`${API_URL}/oss-wizard/registration/${profileId}`, { credentials: 'include' });
@@ -151,13 +148,16 @@ export default function OssWizardClient() {
     return json.data ?? [];
   }, []);
 
-  const loadData = useCallback(async () => {
+  const loadData = useCallback(async (profileId: string) => {
     setIsLoading(true);
     setError(null);
     try {
-      const prof = await fetchProfile();
+      // Use profile from store
+      const res = await fetch(`${API_URL}/business-profiles/${profileId}`, { credentials: 'include' });
+      if (!res.ok) { setIsLoading(false); return; }
+      const profJson = await res.json();
+      const prof = profJson.data ?? profJson;
       setProfile(prof);
-      if (!prof) { setIsLoading(false); return; }
 
       const reg = await fetchRegistration(prof.id);
       setRegistration(reg);
@@ -174,9 +174,14 @@ export default function OssWizardClient() {
     } finally {
       setIsLoading(false);
     }
-  }, [fetchProfile, fetchRegistration, fetchScore, fetchDeadlines]);
+  }, [fetchRegistration, fetchScore, fetchDeadlines]);
 
-  useEffect(() => { loadData(); }, [loadData]);
+  // Reload when active profile changes
+  useEffect(() => {
+    if (storeProfileId) {
+      loadData(storeProfileId);
+    }
+  }, [storeProfileId, loadData]);
 
   /* ── Activate NIB ── */
   async function handleActivate() {
@@ -191,7 +196,7 @@ export default function OssWizardClient() {
       });
       if (!res.ok) throw new Error('Aktivasi gagal');
       setShowActivation(false);
-      await loadData();
+      if (storeProfileId) await loadData(storeProfileId);
     } catch {
       setError('Gagal mengaktivasi NIB. Periksa data dan coba lagi.');
     } finally {
@@ -209,7 +214,7 @@ export default function OssWizardClient() {
         body: JSON.stringify(payload),
       });
       if (!res.ok) throw new Error('Update gagal');
-      if (profile) await loadData();
+      if (profile && storeProfileId) await loadData(storeProfileId);
     } catch {
       setError('Gagal memperbarui langkah.');
     }
@@ -224,7 +229,7 @@ export default function OssWizardClient() {
         method: 'POST', credentials: 'include', body: formData,
       });
       if (!res.ok) throw new Error('Upload gagal');
-      if (profile) await loadData();
+      if (profile && storeProfileId) await loadData(storeProfileId);
     } catch {
       setError('Upload gagal. Pastikan file PDF/gambar dan max 5MB.');
     } finally {

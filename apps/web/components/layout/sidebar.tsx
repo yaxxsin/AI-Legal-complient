@@ -27,6 +27,7 @@ import {
 import { useAuth } from '@/hooks/use-auth';
 import { useCurrentUser } from '@/hooks/use-user';
 import { useFeatureFlags } from '@/hooks/use-feature-flags';
+import { ProfileSwitcher } from './profile-switcher';
 
 interface SidebarProps {
   variant?: 'dashboard' | 'admin';
@@ -82,6 +83,9 @@ export function Sidebar({ variant = 'dashboard' }: SidebarProps) {
           {variant === 'admin' ? 'Admin' : 'LocalCompliance'}
         </span>
       </div>
+
+      {/* Profile Switcher (dashboard only) */}
+      {variant === 'dashboard' && <div className="pt-3"><ProfileSwitcher /></div>}
 
       {/* Navigation */}
       <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">

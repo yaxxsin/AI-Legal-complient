@@ -4,15 +4,15 @@
 > Menunjuk ke phase state yang sedang aktif.
 
 ## ACTIVE
-- **Phase**: 24: Session Management & Security Hardening
-- **State File**: phase-24.md
+- **Phase**: 25: Multi-Profile Separation
+- **State File**: phase-25.md
 - **Developer**: Engine AI
 - **Since**: 2026-04-22
-- **Status**: ✅ Completed
+- **Status**: 🔄 In Progress
 
-NOW.Task: Phase 24 Completed
-NOW.Step: 10/10 - All done
-CRUMBS: CMS builder CRUD: 8c387ef, CMS fix: bc95c33, admin users+overview+cms-fix: 912b295
+NOW.Task: Step 1/7 - Create useProfileStore
+NOW.Step: 1/7
+CRUMBS: -
 
 ## PHASE INDEX
 

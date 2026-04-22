@@ -104,7 +104,9 @@ export default function ChatPage() {
       });
 
       if (!res.ok) {
-        throw new Error('Gagal mendapatkan respons dari AI');
+        const errBody = await res.json().catch(() => ({}));
+        const errMsg = errBody.message || errBody.error?.message || `Error ${res.status}`;
+        throw new Error(errMsg);
       }
 
       const data = await res.json();
@@ -121,8 +123,9 @@ export default function ChatPage() {
         timestamp: new Date(),
       };
       setMessages((prev) => [...prev, botMsg]);
-    } catch {
-      setError('Gagal menghubungi ComplianceBot. Coba lagi.');
+    } catch (err: any) {
+      const msg = err?.message || 'Gagal menghubungi ComplianceBot.';
+      setError(msg.includes('fetch') ? 'Gagal menghubungi server. Pastikan API berjalan.' : msg);
     } finally {
       setIsLoading(false);
       inputRef.current?.focus();

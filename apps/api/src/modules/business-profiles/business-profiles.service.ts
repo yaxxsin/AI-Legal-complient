@@ -15,7 +15,7 @@ const pdfParse = require('pdf-parse');
 /** Plan-based profile limits */
 const PLAN_LIMITS: Record<string, number> = {
   free: 1,
-  starter: 2,
+  starter: 1,
   growth: 3,
   business: 10,
 };

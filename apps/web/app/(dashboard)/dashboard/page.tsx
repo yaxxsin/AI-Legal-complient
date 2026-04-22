@@ -1,9 +1,11 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useAuthStore } from '@/stores/auth-store';
 import { useCurrentUser } from '@/hooks/use-user';
 import { useNotifications } from '@/hooks/use-notifications';
+import { useProfiles } from '@/hooks/use-profiles';
 import {
   MessageSquare,
   ClipboardCheck,
@@ -14,6 +16,7 @@ import {
   Sparkles,
   TrendingUp,
   Shield,
+  Building2,
 } from 'lucide-react';
 
 /** Quick action card data */
@@ -48,13 +51,26 @@ const quickActions = [
   },
 ];
 
+const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001/api/v1';
+
 export default function DashboardPage() {
   const { user } = useAuthStore();
   const { isLoading: isUserLoading } = useCurrentUser();
   const { unreadCount } = useNotifications();
+  const { activeProfile, activeProfileId } = useProfiles();
+  const [complianceScore, setComplianceScore] = useState<number | null>(null);
 
   const greeting = getGreeting();
   const displayName = user?.fullName?.split(' ')[0] ?? 'User';
+
+  // Fetch compliance score for active profile
+  useEffect(() => {
+    if (!activeProfileId) { setComplianceScore(null); return; }
+    fetch(`${API_URL}/oss-wizard/score/${activeProfileId}`, { credentials: 'include' })
+      .then((r) => r.ok ? r.json() : null)
+      .then((d) => setComplianceScore(d?.data?.score ?? null))
+      .catch(() => setComplianceScore(null));
+  }, [activeProfileId]);
 
   return (
     <div className="max-w-5xl mx-auto space-y-8 animate-fade-in">
@@ -79,12 +95,20 @@ export default function DashboardPage() {
       </section>
 
       {/* Summary stats */}
-      <section className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+      <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        {activeProfile && (
+          <StatCard
+            icon={<Building2 className="w-5 h-5" />}
+            label="Profil Aktif"
+            value={activeProfile.businessName || activeProfile.entityType}
+            accent="text-foreground"
+          />
+        )}
         <StatCard
           icon={<Shield className="w-5 h-5" />}
-          label="Status"
-          value={user?.onboardingCompleted ? 'Aktif' : 'Setup'}
-          accent="text-success"
+          label="Skor Kepatuhan"
+          value={complianceScore !== null ? `${complianceScore}%` : '-'}
+          accent={complianceScore !== null && complianceScore >= 70 ? 'text-success' : complianceScore !== null ? 'text-warning' : 'text-muted-foreground'}
         />
         <StatCard
           icon={<TrendingUp className="w-5 h-5" />}

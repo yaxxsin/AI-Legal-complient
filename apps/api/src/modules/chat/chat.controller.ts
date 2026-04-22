@@ -1,5 +1,6 @@
 import { Controller, Post, Get, Param, Body, UseGuards, Req } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
+import { SkipThrottle } from '@nestjs/throttler';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { FeatureFlagGuard } from '../../common/guards/feature-flag.guard';
 import { RequireFeature } from '../../common/decorators/feature-flag.decorator';
@@ -12,6 +13,7 @@ interface ChatRequestDto {
 
 @ApiTags('Chat')
 @ApiBearerAuth()
+@SkipThrottle()
 @UseGuards(JwtAuthGuard, FeatureFlagGuard)
 @RequireFeature('menu-chat')
 @Controller('chat')
