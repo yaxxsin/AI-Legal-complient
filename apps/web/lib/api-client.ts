@@ -27,6 +27,7 @@ export async function apiClient<T>(
 
   const response = await fetch(`${API_BASE_URL}${endpoint}`, {
     headers,
+    credentials: 'include', // Send httpOnly cookies automatically
     ...rest,
   });
 

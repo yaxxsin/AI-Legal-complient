@@ -1,6 +1,8 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { LoggerModule } from 'nestjs-pino';
+import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
+import { APP_GUARD } from '@nestjs/core';
 import { PrismaModule } from './database/prisma.module';
 import { HealthModule } from './modules/health/health.module';
 import { AuthModule } from './modules/auth/auth.module';
@@ -51,6 +53,12 @@ import { BullModule } from '@nestjs/bullmq';
       },
     }),
 
+    // Rate limiting — 60 requests per minute per IP (global)
+    ThrottlerModule.forRoot([{
+      ttl: 60000,
+      limit: 60,
+    }]),
+
     // Database
     PrismaModule,
 
@@ -88,6 +96,13 @@ import { BullModule } from '@nestjs/bullmq';
     RegulationSyncModule,
     CmsModule,
     OssWizardModule,
+  ],
+  providers: [
+    // Global rate limiter guard
+    {
+      provide: APP_GUARD,
+      useClass: ThrottlerGuard,
+    },
   ],
 })
 export class AppModule {}

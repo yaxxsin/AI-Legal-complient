@@ -4,6 +4,7 @@ import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import { Logger } from 'nestjs-pino';
 import helmet from 'helmet';
 import * as compression from 'compression';
+import * as cookieParser from 'cookie-parser';
 import * as Sentry from '@sentry/node';
 import { nodeProfilingIntegration } from '@sentry/profiling-node';
 import { AppModule } from './app.module';
@@ -25,6 +26,7 @@ async function bootstrap(): Promise<void> {
   // Security
   app.use(helmet());
   app.use(compression());
+  app.use(cookieParser());
 
   // CORS
   app.enableCors({

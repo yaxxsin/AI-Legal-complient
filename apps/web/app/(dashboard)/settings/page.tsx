@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '@/hooks/use-auth';
 import { useCurrentUser } from '@/hooks/use-user';
 
@@ -168,9 +168,9 @@ function ProfileTab() {
   );
 }
 
-/** Security Tab — change password */
+/** Security Tab — change password + session management */
 function SecurityTab() {
-  const { changePassword, isLoading } = useAuth();
+  const { changePassword, isLoading, signOut } = useAuth();
   const [oldPassword, setOldPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -205,81 +205,231 @@ function SecurityTab() {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-6">
-      <SettingsCard title="Ubah Password" description="Pastikan password baru Anda kuat dan unik">
-        <div className="space-y-4">
-          <div className="space-y-2">
-            <label htmlFor="settings-old-password" className="text-sm font-medium">
-              Password Lama
-            </label>
-            <input
-              id="settings-old-password"
-              type="password"
-              value={oldPassword}
-              onChange={(e) => setOldPassword(e.target.value)}
-              required
-              autoComplete="current-password"
-              className="settings-input"
-            />
-          </div>
+    <div className="space-y-8">
+      <form onSubmit={handleSubmit} className="space-y-6">
+        <SettingsCard title="Ubah Password" description="Pastikan password baru Anda kuat dan unik">
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <label htmlFor="settings-old-password" className="text-sm font-medium">
+                Password Lama
+              </label>
+              <input
+                id="settings-old-password"
+                type="password"
+                value={oldPassword}
+                onChange={(e) => setOldPassword(e.target.value)}
+                required
+                autoComplete="current-password"
+                className="settings-input"
+              />
+            </div>
 
-          <div className="space-y-2">
-            <label htmlFor="settings-new-password" className="text-sm font-medium">
-              Password Baru
-            </label>
-            <input
-              id="settings-new-password"
-              type="password"
-              value={newPassword}
-              onChange={(e) => setNewPassword(e.target.value)}
-              required
-              minLength={8}
-              autoComplete="new-password"
-              className="settings-input"
-            />
-            <p className="text-xs text-muted-foreground">
-              Min. 8 karakter, 1 huruf besar, 1 angka
-            </p>
-          </div>
+            <div className="space-y-2">
+              <label htmlFor="settings-new-password" className="text-sm font-medium">
+                Password Baru
+              </label>
+              <input
+                id="settings-new-password"
+                type="password"
+                value={newPassword}
+                onChange={(e) => setNewPassword(e.target.value)}
+                required
+                minLength={8}
+                autoComplete="new-password"
+                className="settings-input"
+              />
+              <p className="text-xs text-muted-foreground">
+                Min. 8 karakter, 1 huruf besar, 1 angka
+              </p>
+            </div>
 
-          <div className="space-y-2">
-            <label htmlFor="settings-confirm-password" className="text-sm font-medium">
-              Konfirmasi Password Baru
-            </label>
-            <input
-              id="settings-confirm-password"
-              type="password"
-              value={confirmPassword}
-              onChange={(e) => setConfirmPassword(e.target.value)}
-              required
-              minLength={8}
-              autoComplete="new-password"
-              className="settings-input"
-            />
+            <div className="space-y-2">
+              <label htmlFor="settings-confirm-password" className="text-sm font-medium">
+                Konfirmasi Password Baru
+              </label>
+              <input
+                id="settings-confirm-password"
+                type="password"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                required
+                minLength={8}
+                autoComplete="new-password"
+                className="settings-input"
+              />
+            </div>
           </div>
+        </SettingsCard>
+
+        {error && (
+          <div className="p-3 rounded-xl bg-destructive/10 text-destructive text-sm text-center border border-destructive/20">
+            {error}
+          </div>
+        )}
+
+        {success && (
+          <div className="p-3 rounded-xl bg-success/10 text-success text-sm text-center border border-success/20">
+            {success}
+          </div>
+        )}
+
+        <button
+          type="submit"
+          disabled={isLoading}
+          className="w-full h-11 rounded-xl bg-primary text-primary-foreground font-semibold shadow-lg shadow-primary/25 hover:shadow-xl hover:-translate-y-0.5 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          {isLoading ? 'Mengubah...' : 'Ubah Password'}
+        </button>
+      </form>
+
+      {/* Active Sessions */}
+      <SessionManager onForceLogout={signOut} />
+    </div>
+  );
+}
+
+/** Session Manager — list and revoke active sessions */
+function SessionManager({ onForceLogout }: { onForceLogout: () => void }) {
+  const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001/api/v1';
+
+  interface SessionItem {
+    id: string;
+    ipAddress: string | null;
+    deviceName: string | null;
+    lastActiveAt: string;
+    createdAt: string;
+  }
+
+  const [sessions, setSessions] = useState<SessionItem[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [revoking, setRevoking] = useState<string | null>(null);
+  const [revokingAll, setRevokingAll] = useState(false);
+
+  const fetchSessions = useCallback(async () => {
+    try {
+      const res = await fetch(`${API_URL}/auth/sessions`, {
+        credentials: 'include',
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setSessions(data.data || []);
+      }
+    } catch {
+      // Silently fail
+    } finally {
+      setLoading(false);
+    }
+  }, [API_URL]);
+
+  useEffect(() => {
+    fetchSessions();
+  }, [fetchSessions]);
+
+  async function handleRevoke(sessionId: string) {
+    setRevoking(sessionId);
+    try {
+      const res = await fetch(`${API_URL}/auth/sessions/${sessionId}`, {
+        method: 'DELETE',
+        credentials: 'include',
+      });
+      if (res.ok) {
+        setSessions((prev) => prev.filter((s) => s.id !== sessionId));
+      }
+    } catch {
+      // Silently fail
+    } finally {
+      setRevoking(null);
+    }
+  }
+
+  async function handleRevokeAll() {
+    if (!confirm('Yakin ingin logout dari semua perangkat? Anda akan diminta login ulang.')) return;
+
+    setRevokingAll(true);
+    try {
+      const res = await fetch(`${API_URL}/auth/sessions/revoke-all`, {
+        method: 'POST',
+        credentials: 'include',
+      });
+      if (res.ok) {
+        onForceLogout();
+      }
+    } catch {
+      // Silently fail
+    } finally {
+      setRevokingAll(false);
+    }
+  }
+
+  function formatDate(dateStr: string) {
+    return new Date(dateStr).toLocaleDateString('id-ID', {
+      day: 'numeric',
+      month: 'short',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+    });
+  }
+
+  return (
+    <SettingsCard title="Sesi Aktif" description="Perangkat yang sedang login ke akun Anda">
+      {loading ? (
+        <div className="space-y-3">
+          {[1, 2].map((i) => (
+            <div key={i} className="h-16 bg-muted rounded-xl animate-pulse" />
+          ))}
         </div>
-      </SettingsCard>
+      ) : sessions.length === 0 ? (
+        <p className="text-sm text-muted-foreground text-center py-4">
+          Tidak ada sesi aktif ditemukan.
+        </p>
+      ) : (
+        <div className="space-y-3">
+          {sessions.map((session, idx) => (
+            <div
+              key={session.id}
+              className="flex items-center justify-between p-4 rounded-xl border border-border bg-muted/20"
+            >
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2">
+                  <p className="text-sm font-medium truncate">
+                    {session.deviceName || 'Perangkat Tidak Dikenal'}
+                  </p>
+                  {idx === 0 && (
+                    <span className="text-[10px] font-bold uppercase px-1.5 py-0.5 rounded bg-primary/10 text-primary">
+                      Sesi Ini
+                    </span>
+                  )}
+                </div>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  IP: {session.ipAddress || '-'} &middot; Aktif: {formatDate(session.lastActiveAt)}
+                </p>
+              </div>
 
-      {error && (
-        <div className="p-3 rounded-xl bg-destructive/10 text-destructive text-sm text-center border border-destructive/20">
-          {error}
+              {idx !== 0 && (
+                <button
+                  onClick={() => handleRevoke(session.id)}
+                  disabled={revoking === session.id}
+                  className="ml-3 px-3 py-1.5 text-xs font-medium rounded-lg border border-destructive/30 text-destructive hover:bg-destructive/10 transition-colors disabled:opacity-50"
+                >
+                  {revoking === session.id ? '...' : 'Logout'}
+                </button>
+              )}
+            </div>
+          ))}
+
+          {sessions.length > 1 && (
+            <button
+              onClick={handleRevokeAll}
+              disabled={revokingAll}
+              className="w-full mt-2 py-2.5 text-sm font-medium rounded-xl border border-destructive/30 text-destructive hover:bg-destructive/10 transition-colors disabled:opacity-50"
+            >
+              {revokingAll ? 'Memproses...' : 'Logout Semua Perangkat'}
+            </button>
+          )}
         </div>
       )}
-
-      {success && (
-        <div className="p-3 rounded-xl bg-success/10 text-success text-sm text-center border border-success/20">
-          {success}
-        </div>
-      )}
-
-      <button
-        type="submit"
-        disabled={isLoading}
-        className="w-full h-11 rounded-xl bg-primary text-primary-foreground font-semibold shadow-lg shadow-primary/25 hover:shadow-xl hover:-translate-y-0.5 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
-      >
-        {isLoading ? 'Mengubah...' : 'Ubah Password'}
-      </button>
-    </form>
+    </SettingsCard>
   );
 }
 

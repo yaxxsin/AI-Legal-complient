@@ -41,8 +41,32 @@ model User {
   ownedTeams         Team[]               @relation("TeamOwner")
   teamMemberships    TeamMember[]
   sentInvitations    TeamInvitation[]     @relation("TeamInviter")
+  sessions           Session[]
 
   @@map("users")
+}
+
+// ==========================================
+// SESSIONS (Phase 24)
+// ==========================================
+model Session {
+  id            String    @id @default(uuid()) @db.Uuid
+  userId        String    @map("user_id") @db.Uuid
+  refreshToken  String    @unique @map("refresh_token") @db.VarChar(500)
+  ipAddress     String?   @map("ip_address") @db.VarChar(45)
+  userAgent     String?   @map("user_agent") @db.VarChar(500)
+  deviceName    String?   @map("device_name") @db.VarChar(100)
+  isActive      Boolean   @default(true) @map("is_active")
+  lastActiveAt  DateTime  @default(now()) @map("last_active_at")
+  expiresAt     DateTime  @map("expires_at")
+  createdAt     DateTime  @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([refreshToken])
+  @@index([expiresAt])
+  @@map("sessions")
 }
 
 // ==========================================

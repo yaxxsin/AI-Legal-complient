@@ -20,19 +20,10 @@ interface UserProfile {
   createdAt: string;
 }
 
-/** Helper to read cookie value */
-function getCookie(name: string): string | null {
-  if (typeof document === 'undefined') return null;
-  const match = document.cookie.match(new RegExp(`(^| )${name}=([^;]+)`));
-  return match ? match[2] : null;
-}
-
 async function fetchCurrentUser(): Promise<UserProfile | null> {
-  const token = getCookie('access_token');
-  if (!token) return null;
-
+  // httpOnly cookies are sent automatically with credentials: 'include'
   const response = await fetch(`${API_URL}/users/me`, {
-    headers: { Authorization: `Bearer ${token}` },
+    credentials: 'include',
   });
 
   if (!response.ok) return null;

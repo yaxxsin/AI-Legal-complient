@@ -2,8 +2,9 @@
 
 import { useEffect, useState, useCallback } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { Card, CardContent } from '@/components/ui/card';
-import { LayoutPanelTop, Search, Plus, Edit3, Globe, EyeOff, Loader2 } from 'lucide-react';
+import { LayoutPanelTop, Search, Plus, Edit3, Globe, EyeOff, Loader2, Trash2 } from 'lucide-react';
 
 interface CmsPage {
   id: string;
@@ -15,15 +16,17 @@ interface CmsPage {
 }
 
 export default function AdminCmsListPage() {
+  const router = useRouter();
   const [pages, setPages] = useState<CmsPage[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [search, setSearch] = useState('');
 
   const apiUrl = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001/api/v1';
+  const getToken = () => document.cookie.split('; ').find(r => r.startsWith('access_token='))?.split('=')[1];
 
   const fetchPages = useCallback(async () => {
     try {
-      const token = document.cookie.split('; ').find(r => r.startsWith('access_token='))?.split('=')[1];
+      const token = getToken();
       const res = await fetch(`${apiUrl}/cms/pages`, {
         headers: { ...(token && { Authorization: `Bearer ${token}` }) },
       });
@@ -37,6 +40,29 @@ export default function AdminCmsListPage() {
       setIsLoading(false);
     }
   }, [apiUrl]);
+
+  const handleCreatePage = () => {
+    router.push('/admin/cms/new');
+  };
+
+  const handleDeletePage = async (id: string, title: string) => {
+    if (!confirm(`Hapus halaman "${title}"? Semua sections akan ikut terhapus.`)) return;
+    try {
+      const token = getToken();
+      const res = await fetch(`${apiUrl}/cms/pages/${id}`, {
+        method: 'DELETE',
+        headers: { ...(token && { Authorization: `Bearer ${token}` }) },
+      });
+      if (res.ok) {
+        setPages((prev) => prev.filter((p) => p.id !== id));
+      } else {
+        alert('Gagal menghapus halaman');
+      }
+    } catch (e) {
+      console.error('Failed to delete page:', e);
+      alert('Gagal menghapus halaman');
+    }
+  };
 
   useEffect(() => {
     fetchPages();
@@ -77,8 +103,10 @@ export default function AdminCmsListPage() {
           />
         </div>
         
-        {/* Create button could be added here in the future if we support multi-pages, currently we might just edit 'home' */}
-        <button className="flex items-center gap-2 px-4 py-2.5 bg-primary text-primary-foreground rounded-xl font-medium shadow-md shadow-primary/20 hover:-translate-y-0.5 hover:shadow-lg transition-all md:w-auto w-full justify-center">
+        <button
+          onClick={handleCreatePage}
+          className="flex items-center gap-2 px-4 py-2.5 bg-primary text-primary-foreground rounded-xl font-medium shadow-md shadow-primary/20 hover:-translate-y-0.5 hover:shadow-lg transition-all md:w-auto w-full justify-center"
+        >
           <Plus className="w-4 h-4" /> Tambah Page
         </button>
       </div>
@@ -132,13 +160,22 @@ export default function AdminCmsListPage() {
                         )}
                       </td>
                       <td className="px-5 py-4 text-right">
-                        <Link
-                          href={`/admin/cms/${page.id}`}
-                          className="inline-flex items-center justify-center p-2 rounded-lg bg-surface hover:bg-primary/10 hover:text-primary transition-colors text-muted-foreground border border-border"
-                          title="Edit page"
-                        >
-                          <Edit3 className="w-4 h-4" />
-                        </Link>
+                        <div className="flex items-center justify-end gap-2">
+                          <Link
+                            href={`/admin/cms/${page.id}`}
+                            className="inline-flex items-center justify-center p-2 rounded-lg bg-surface hover:bg-primary/10 hover:text-primary transition-colors text-muted-foreground border border-border"
+                            title="Edit page"
+                          >
+                            <Edit3 className="w-4 h-4" />
+                          </Link>
+                          <button
+                            onClick={() => handleDeletePage(page.id, page.title)}
+                            className="inline-flex items-center justify-center p-2 rounded-lg bg-surface hover:bg-red-500/10 hover:text-red-500 transition-colors text-muted-foreground border border-border"
+                            title="Hapus page"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   ))}

@@ -15,7 +15,7 @@ interface JwtPayload {
   plan: string;
 }
 
-/** Verifies the JWT from the Authorization header or cookie */
+/** Verifies the JWT from the Authorization header or httpOnly cookie */
 @Injectable()
 export class JwtAuthGuard implements CanActivate {
   private readonly jwtSecret: string;
@@ -57,7 +57,7 @@ export class JwtAuthGuard implements CanActivate {
     return true;
   }
 
-  /** Extract token from Authorization header or cookie */
+  /** Extract token from Authorization header or httpOnly cookie */
   private extractToken(
     request: {
       headers: Record<string, string>;
@@ -70,7 +70,7 @@ export class JwtAuthGuard implements CanActivate {
       return authHeader.substring(7);
     }
 
-    // Fallback to cookie
+    // Fallback to httpOnly cookie (now works with cookie-parser)
     return request.cookies?.access_token ?? null;
   }
 }

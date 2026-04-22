@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Put, Body, Param, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Put, Delete, Body, Param, UseGuards } from '@nestjs/common';
 import { CmsService } from './cms.service';
 import { SupabaseAuthGuard } from '../../common/guards/supabase-auth.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
@@ -20,6 +20,20 @@ export class CmsController {
   // ==========================================
   // ADMIN ENDPOINTS (Auth & 'ADMIN' Role Required)
   // ==========================================
+
+  @UseGuards(SupabaseAuthGuard, RolesGuard)
+  @Roles('ADMIN')
+  @Post('pages')
+  async createPage(@Body() data: { title: string; slug: string; metaDescription?: string; isPublished?: boolean }) {
+    return this.cmsService.createPage(data);
+  }
+
+  @UseGuards(SupabaseAuthGuard, RolesGuard)
+  @Roles('ADMIN')
+  @Delete('pages/:id')
+  async deletePage(@Param('id') id: string) {
+    return this.cmsService.deletePage(id);
+  }
 
   @UseGuards(SupabaseAuthGuard, RolesGuard)
   @Roles('ADMIN')

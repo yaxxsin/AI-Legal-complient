@@ -10,7 +10,11 @@ interface AuthState {
   error: string | null;
 }
 
-/** Hook for auth actions — calls NestJS API directly */
+/**
+ * Hook for auth actions — calls NestJS API directly.
+ * Cookies are now set server-side via Set-Cookie headers (httpOnly).
+ * Frontend no longer touches document.cookie for auth tokens.
+ */
 export function useAuth() {
   const router = useRouter();
   const [state, setState] = useState<AuthState>({
@@ -26,7 +30,7 @@ export function useAuth() {
       const res = await fetch(`${API_URL}/auth/register`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
+        credentials: 'include', // Required for Set-Cookie to work cross-origin
         body: JSON.stringify({ email, password, fullName }),
       });
 
@@ -36,11 +40,7 @@ export function useAuth() {
         return false;
       }
 
-      // Store token in cookie via document.cookie (httpOnly should be set server-side)
-      if (data.accessToken) {
-        document.cookie = `access_token=${data.accessToken}; path=/; max-age=3600; SameSite=Lax`;
-      }
-
+      // Cookies are set automatically via Set-Cookie response headers
       setState({ isLoading: false, error: null });
       return true;
     } catch {
@@ -67,13 +67,7 @@ export function useAuth() {
         return false;
       }
 
-      if (data.accessToken) {
-        document.cookie = `access_token=${data.accessToken}; path=/; max-age=${data.expiresIn ?? 3600}; SameSite=Lax`;
-      }
-      if (data.refreshToken) {
-        document.cookie = `refresh_token=${data.refreshToken}; path=/; max-age=2592000; SameSite=Lax`;
-      }
-
+      // Cookies are set automatically via Set-Cookie response headers
       setState({ isLoading: false, error: null });
       router.refresh();
       return true;
@@ -87,14 +81,35 @@ export function useAuth() {
   async function signOut() {
     setState({ isLoading: true, error: null });
 
-    // Clear cookies
-    document.cookie = 'access_token=; path=/; max-age=0';
-    document.cookie = 'refresh_token=; path=/; max-age=0';
+    try {
+      // Call server to revoke session + clear httpOnly cookies
+      await fetch(`${API_URL}/auth/logout`, {
+        method: 'POST',
+        credentials: 'include',
+      });
+    } catch {
+      // Even if API call fails, proceed with client-side cleanup
+    }
 
     setState({ isLoading: false, error: null });
     router.push('/login');
     router.refresh();
     return true;
+  }
+
+  /** Refresh access token (called when 401 detected) */
+  async function refreshAccessToken(): Promise<boolean> {
+    try {
+      const res = await fetch(`${API_URL}/auth/refresh`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+      });
+
+      return res.ok;
+    } catch {
+      return false;
+    }
   }
 
   /** Send reset password email */
@@ -126,13 +141,10 @@ export function useAuth() {
     setState({ isLoading: true, error: null });
 
     try {
-      const token = getCookie('access_token');
       const res = await fetch(`${API_URL}/users/me/change-password`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        },
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
         body: JSON.stringify({ oldPassword, newPassword }),
       });
 
@@ -155,14 +167,8 @@ export function useAuth() {
     signUp,
     signIn,
     signOut,
+    refreshAccessToken,
     resetPassword,
     changePassword,
   };
-}
-
-/** Helper to read cookie value */
-function getCookie(name: string): string | null {
-  if (typeof document === 'undefined') return null;
-  const match = document.cookie.match(new RegExp(`(^| )${name}=([^;]+)`));
-  return match ? match[2] : null;
 }

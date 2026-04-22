@@ -1,5 +1,12 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, ConflictException } from '@nestjs/common';
 import { PrismaService } from '../../database/prisma.service';
+
+interface CreatePageDto {
+  title: string;
+  slug: string;
+  metaDescription?: string;
+  isPublished?: boolean;
+}
 
 @Injectable()
 export class CmsService {
@@ -31,6 +38,36 @@ export class CmsService {
   // ==========================================
   // ADMIN ENDPOINTS
   // ==========================================
+
+  /** Create a new CMS page with unique slug validation */
+  async createPage(data: CreatePageDto) {
+    const existing = await this.prisma.cmsPage.findUnique({
+      where: { slug: data.slug },
+    });
+    if (existing) {
+      throw new ConflictException(`Slug '${data.slug}' sudah digunakan.`);
+    }
+
+    return this.prisma.cmsPage.create({
+      data: {
+        title: data.title,
+        slug: data.slug,
+        metaDescription: data.metaDescription ?? '',
+        isPublished: data.isPublished ?? false,
+      },
+    });
+  }
+
+  /** Delete a CMS page and all its sections (cascade) */
+  async deletePage(id: string) {
+    const page = await this.prisma.cmsPage.findUnique({
+      where: { id },
+    });
+    if (!page) throw new NotFoundException('CMS Page not found');
+
+    await this.prisma.cmsPage.delete({ where: { id } });
+    return { deleted: true, id };
+  }
 
   async getAllPages() {
     return this.prisma.cmsPage.findMany({
