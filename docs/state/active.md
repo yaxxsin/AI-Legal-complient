@@ -4,15 +4,15 @@
 > Menunjuk ke phase state yang sedang aktif.
 
 ## ACTIVE
-- **Phase**: 25: Multi-Profile Separation (custom)
+- **Phase**: 25: Multi-AI Model Integration
 - **State File**: phase-25.md
 - **Developer**: Engine AI
 - **Since**: 2026-04-22
-- **Status**: ✅ Completed
+- **Status**: 📋 Planned (next)
 
-NOW.Task: Phase 25 (Multi-Profile) Completed
-NOW.Step: 7/7 - All done
-CRUMBS: saved: 56b766c → feature/phase-25-multiprofile
+NOW.Task: Session parked — all prior work saved
+NOW.Step: -
+CRUMBS: -
 
 ## PHASE INDEX
 
