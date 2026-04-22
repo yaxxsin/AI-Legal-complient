@@ -22,6 +22,7 @@ import {
   Flag,
   BriefcaseBusiness,
   RefreshCw,
+  Stamp,
 } from 'lucide-react';
 import { useAuth } from '@/hooks/use-auth';
 import { useCurrentUser } from '@/hooks/use-user';
@@ -35,6 +36,7 @@ const dashboardLinks = [
   { featureKey: 'menu-dashboard', href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { featureKey: 'menu-chat', href: '/chat', label: 'ComplianceBot', icon: MessageSquare },
   { featureKey: 'menu-checklist', href: '/checklist', label: 'Checklist', icon: ClipboardCheck },
+  { featureKey: 'menu-oss-wizard', href: '/oss-wizard', label: 'Roadmap Kepatuhan', icon: Stamp },
   { featureKey: 'menu-documents', href: '/documents', label: 'Dokumen', icon: FileText },
   { featureKey: 'menu-doc-review', href: '/document-review', label: 'Review Dokumen AI', icon: FileCode },
   { featureKey: 'menu-hr', href: '/hr', label: 'Kalkulator HR', icon: BriefcaseBusiness },

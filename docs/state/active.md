@@ -4,15 +4,15 @@
 > Menunjuk ke phase state yang sedang aktif.
 
 ## ACTIVE
-- **Phase**: 22: Admin CMS — Landing Page Builder
-- **State File**: phase-22.md
+- **Phase**: 21: OSS/NIB Wizard & Evidence
+- **State File**: phase-21.md
 - **Developer**: Engine AI
-- **Since**: 2026-04-21
-- **Status**: 🟡 In Progress (Researching)
+- **Since**: 2026-04-22
+- **Status**: ✅ Completed
 
-NOW.Task: Researching Phase 22
-NOW.Step: 0/8 - Analyzing deps and schema
-CRUMBS: 
+NOW.Task: Phase 21 Completed
+NOW.Step: 8/8 - All done
+CRUMBS: saved: pending-commit
 
 ## PHASE INDEX
 
@@ -46,7 +46,7 @@ CRUMBS:
 | 18 | Document Review AI | phase-18.md | ✅ | M | Phase 11 |
 | 19 | HR Compliance Module | phase-19.md | ✅ | S | Phase 0 |
 | 20 | Multi-User & Team | phase-20.md | ✅ | M | Phase 2 |
-| 21 | OSS/NIB Wizard & Evidence | phase-21.md | ⬜ | M | Phase 9 |
+| 21 | OSS/NIB Wizard & Evidence | phase-21.md | ✅ | M | Phase 9 |
 
 ## DEPENDENCY GRAPH
 

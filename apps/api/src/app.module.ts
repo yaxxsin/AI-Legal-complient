@@ -22,6 +22,7 @@ import { StorageModule } from './modules/storage/storage.module';
 import { ComplianceItemsModule } from './modules/compliance-items/compliance-items.module';
 import { RegulationSyncModule } from './modules/regulation-sync/regulation-sync.module';
 import { CmsModule } from './modules/cms/cms.module';
+import { OssWizardModule } from './modules/oss-wizard/oss-wizard.module';
 import { BullModule } from '@nestjs/bullmq';
 
 @Module({
@@ -86,6 +87,7 @@ import { BullModule } from '@nestjs/bullmq';
     ComplianceItemsModule,
     RegulationSyncModule,
     CmsModule,
+    OssWizardModule,
   ],
 })
 export class AppModule {}

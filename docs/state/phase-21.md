@@ -20,6 +20,6 @@ Supabase Storage: evidence/{profile_id}/{item_id}/
 
 Blueprint ref: BAB 6 MOD-13, MOD-14
 
-## NOW: -
-## NEXT: -
-## CRUMBS: -
+## NOW: Phase 21 Complete ✅ (Redesigned as Post-NIB Compliance Roadmap)
+## NEXT: /save or /park
+## CRUMBS: schema(OssStep+category,deadlineDay,isRecurring,complianceScore,skNumber), svc(13-step roadmap,scoring,deadline calc), ctrl(activate,score,deadlines), client(NIB activation,score card,category filter,deadline tab), sidebar(Roadmap Kepatuhan), tsc ✅

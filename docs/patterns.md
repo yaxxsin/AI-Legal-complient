@@ -73,3 +73,27 @@
   └ Evidence: apps/web/app/
 - **Locale**: `lang="id"` (Indonesian), SEO metadata in Bahasa
   └ Evidence: apps/web/app/layout.tsx:52,22-36
+
+## Sidebar Feature Flag Gating
+- **Menu items**: Each `dashboardLinks` entry has `featureKey` (e.g. `menu-checklist`)
+- **Filter**: `isFeatureEnabled(featureKey, user.plan)` — items hidden if flag disabled
+- **New pages**: MUST add `featureKey` + seed FeatureFlag row in DB
+  └ Evidence: apps/web/components/layout/sidebar.tsx:34-44,69-71
+
+## Evidence Upload Pattern
+- **Path**: `evidence/{profileId}/{itemId}/{timestamp}.{ext}` via `StorageService.uploadFile()`
+- **Controller**: `@UseInterceptors(FileInterceptor('file'))` + `ParseFilePipe` (5MB, pdf/png/jpg)
+- **Flow**: Upload → update item `evidenceUrl` + set `status: 'completed'`
+  └ Evidence: apps/api/src/modules/compliance-items/compliance-items.controller.ts:28-58
+
+## NestJS Module Wiring
+- **Each module**: imports `PrismaModule` + shared modules (e.g. `StorageModule`)
+- **Registration**: Added to `app.module.ts` imports array under "Feature modules" group
+- **Exports**: Services exported for cross-module usage via `exports: [ServiceName]`
+  └ Evidence: apps/api/src/modules/compliance-items/compliance-items.module.ts:7-11
+
+## Checklist Generation Pattern
+- **Rule→Item mapping**: `complianceRule.findMany()` → `complianceItem.createMany()`
+- **Dedup**: `findFirst({ where: { businessProfileId, ruleId } })` before insert
+- **Ownership check**: `verifyProfileAccess(profileId, userId)` — reusable private method
+  └ Evidence: apps/api/src/modules/compliance-items/compliance-items.service.ts:32-77
