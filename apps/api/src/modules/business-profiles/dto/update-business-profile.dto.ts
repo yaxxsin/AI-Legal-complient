@@ -73,6 +73,11 @@ export class UpdateBusinessProfileDto {
 
   @ApiPropertyOptional()
   @IsOptional()
+  @IsDateString()
+  nibIssuedDate?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
   @IsString()
   @MaxLength(50)
   npwp?: string;

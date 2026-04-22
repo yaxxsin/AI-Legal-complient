@@ -12,7 +12,7 @@
 
 NOW.Task: Phase 24 Completed
 NOW.Step: 10/10 - All done
-CRUMBS: Session management + security hardening complete, CMS builder CRUD fix saved: 8c387ef, CMS create-page fix + home detection saved: bc95c33
+CRUMBS: CMS builder CRUD: 8c387ef, CMS fix: bc95c33, admin users+overview+cms-fix: 912b295
 
 ## PHASE INDEX
 

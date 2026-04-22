@@ -63,3 +63,4 @@
 - [2026-04-22] 6102521 → feature/phase-23-midtrans | [phase-23] feat: midtrans sandbox integration with E2E tests and webhook improvements (9 files, +789 -87)
 - [2026-04-22] 8c387ef → feature/phase-23-midtrans | [cms] feat: full CRUD CMS builder — create/edit/delete pages + structured section editors (20 files, +1316 -320)
 - [2026-04-22] bc95c33 → feature/phase-23-midtrans | [cms] fix: resolve client-side error on create page + add home page detection with auto-create (17 files, +136 -194)
+- [2026-04-22] 912b295 → feature/phase-23-midtrans | [admin] feat: user management CRUD + real-time overview dashboard + fix CMS editor React error 438 (12 files, +882 -76)
