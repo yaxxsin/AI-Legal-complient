@@ -3,12 +3,6 @@ import { useState, useEffect, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { useCurrentUser } from '@/hooks/use-user';
 
-function getCookie(name: string): string | null {
-  if (typeof document === 'undefined') return null;
-  const match = document.cookie.match(new RegExp(`(^| )${name}=([^;]+)`));
-  return match ? match[2] : null;
-}
-
 function InvitationContent() {
   const searchParams = useSearchParams();
   const token = searchParams.get('token');
@@ -33,14 +27,13 @@ function InvitationContent() {
 
     const claimInvitation = async () => {
       try {
-        const _token = getCookie('access_token');
         const apiUrl = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001/api/v1';
         
         const res = await fetch(`${apiUrl}/teams/invitations/accept`, {
           method: 'POST',
+          credentials: 'include',
           headers: { 
             'Content-Type': 'application/json',
-            ...(_token && { Authorization: `Bearer ${_token}` })
           },
           body: JSON.stringify({ token })
         });

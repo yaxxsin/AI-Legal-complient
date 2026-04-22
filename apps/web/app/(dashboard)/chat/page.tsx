@@ -22,12 +22,6 @@ interface Message {
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001/api/v1';
 
-function getCookie(name: string): string | null {
-  if (typeof document === 'undefined') return null;
-  const match = document.cookie.match(new RegExp(`(^| )${name}=([^;]+)`));
-  return match ? match[2] : null;
-}
-
 export default function ChatPage() {
   const { user } = useAuthStore();
   const [messages, setMessages] = useState<Message[]>([]);
@@ -43,9 +37,8 @@ export default function ChatPage() {
   useEffect(() => {
     async function loadLatestConversation() {
       try {
-        const token = getCookie('access_token');
         const resList = await fetch(`${API_URL}/chat/conversations`, {
-          headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}) }
+          credentials: 'include',
         });
         if (!resList.ok) throw new Error('Failed to load history');
         
@@ -55,7 +48,7 @@ export default function ChatPage() {
         if (latestConvo) {
           setConversationId(latestConvo.id);
           const resDetail = await fetch(`${API_URL}/chat/conversations/${latestConvo.id}`, {
-            headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}) }
+            credentials: 'include',
           });
           const detailData = await resDetail.json();
           if (detailData.data?.messages) {
@@ -101,12 +94,11 @@ export default function ChatPage() {
     setError(null);
 
     try {
-      const token = getCookie('access_token');
       const res = await fetch(`${API_URL}/chat`, {
         method: 'POST',
+        credentials: 'include',
         headers: {
           'Content-Type': 'application/json',
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
         },
         body: JSON.stringify({ message: text, conversationId }),
       });

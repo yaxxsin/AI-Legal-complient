@@ -4,16 +4,8 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { Download, CreditCard, Receipt, Loader2, ArrowRight, AlertTriangle } from 'lucide-react';
 import { apiClient } from '@/lib/api-client';
-import { useAuthStore } from '@/stores/auth-store';
 
 export default function BillingDashboardPage() {
-  const { user } = useAuthStore();
-  const getCookie = (name: string) => {
-    if (typeof document === 'undefined') return null;
-    const match = document.cookie.match(new RegExp(`(^| )${name}=([^;]+)`));
-    return match ? match[2] : null;
-  };
-  const token = getCookie('access_token');
   const [subscription, setSubscription] = useState<any>(null);
   const [invoices, setInvoices] = useState<any[]>([]);
   const [plans, setPlans] = useState<any[]>([]);
@@ -21,11 +13,9 @@ export default function BillingDashboardPage() {
   const [cancelling, setCancelling] = useState(false);
 
   useEffect(() => {
-    if (!token) return;
-
     Promise.all([
-      apiClient<any>('/billing/subscription', { token }),
-      apiClient<any[]>('/billing/invoices', { token }),
+      apiClient<any>('/billing/subscription'),
+      apiClient<any[]>('/billing/invoices'),
       apiClient<any[]>('/billing/plans'),
     ])
       .then(([subRes, invRes, plansRes]) => {
@@ -35,14 +25,14 @@ export default function BillingDashboardPage() {
       })
       .catch(console.error)
       .finally(() => setLoading(false));
-  }, [token]);
+  }, []);
 
   const handleCancel = async () => {
     if (!confirm('Yakin ingin membatalkan langganan? Plan kamu akan tetap aktif hingga akhir periode.')) return;
     
     setCancelling(true);
     try {
-      await apiClient('/billing/cancel', { method: 'POST', token: token! });
+      await apiClient('/billing/cancel', { method: 'POST' });
       alert('Berhasil dibatalkan. Langganan tidak akan diperpanjang.');
       window.location.reload();
     } catch (err) {
@@ -55,7 +45,7 @@ export default function BillingDashboardPage() {
   const handleDownloadInvoice = async (invoiceId: string) => {
     try {
       const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api/v1'}/billing/invoices/${invoiceId}/download`, {
-        headers: { Authorization: `Bearer ${token}` }
+        credentials: 'include',
       });
       if (!res.ok) throw new Error('Gagal mendownload invoice');
       

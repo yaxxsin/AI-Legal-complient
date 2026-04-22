@@ -217,8 +217,8 @@ export default async function HomePage() {
                   <div className="space-y-4">
                      {Array.isArray(d.items) && d.items.map((item: any, idx: number) => (
                        <div key={idx} className="p-6 rounded-2xl bg-card border border-border">
-                         <h3 className="font-bold text-lg">{item.title}</h3>
-                         <p className="mt-2 text-muted-foreground">{item.description}</p>
+                         <h3 className="font-bold text-lg">{item.question || item.title}</h3>
+                         <p className="mt-2 text-muted-foreground">{item.answer || item.description}</p>
                        </div>
                      ))}
                   </div>

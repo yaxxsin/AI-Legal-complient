@@ -27,13 +27,6 @@ interface ArticleItem {
 }
 
 export default function AdminArticlesPage() {
-  const getCookie = (name: string) => {
-    if (typeof document === 'undefined') return null;
-    const match = document.cookie.match(new RegExp(`(^| )${name}=([^;]+)`));
-    return match ? match[2] : null;
-  };
-  const token = getCookie('access_token');
-
   const [articles, setArticles] = useState<ArticleItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
@@ -41,25 +34,24 @@ export default function AdminArticlesPage() {
 
   const fetchArticles = useCallback(async () => {
     try {
-      const res = await apiClient<ArticleItem[]>('/admin/articles?limit=100', { token: token ?? undefined });
+      const res = await apiClient<ArticleItem[]>('/admin/articles?limit=100');
       setArticles(Array.isArray(res.data) ? res.data : []);
     } catch {
       setArticles([]);
     } finally {
       setLoading(false);
     }
-  }, [token]);
+  }, []);
 
   useEffect(() => {
-    if (token) fetchArticles();
-  }, [token, fetchArticles]);
+    fetchArticles();
+  }, [fetchArticles]);
 
   const handleTogglePublish = async (id: string, isPublished: boolean) => {
     setToggling(id);
     try {
       await apiClient(`/admin/articles/${id}`, {
         method: 'PUT',
-        token: token ?? undefined,
         body: JSON.stringify({ isPublished: !isPublished }),
       });
       await fetchArticles();
@@ -73,7 +65,6 @@ export default function AdminArticlesPage() {
     try {
       await apiClient(`/admin/articles/${id}`, {
         method: 'DELETE',
-        token: token ?? undefined,
       });
       await fetchArticles();
     } catch {

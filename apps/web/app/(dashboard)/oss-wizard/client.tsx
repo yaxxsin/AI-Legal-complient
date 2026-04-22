@@ -92,17 +92,6 @@ interface BusinessProfile {
 /* ────── Helpers ────── */
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001/api/v1';
 
-function getCookie(name: string): string | null {
-  if (typeof document === 'undefined') return null;
-  const match = document.cookie.match(new RegExp(`(^| )${name}=([^;]+)`));
-  return match ? match[2] : null;
-}
-
-function authHeaders(): Record<string, string> {
-  const token = getCookie('access_token');
-  return token ? { Authorization: `Bearer ${token}` } : {};
-}
-
 function isImageFile(url: string): boolean {
   const ext = url.split('?')[0].split('.').pop()?.toLowerCase() ?? '';
   return ['jpg', 'jpeg', 'png', 'webp', 'gif'].includes(ext);
@@ -134,7 +123,7 @@ export default function OssWizardClient() {
   const [isActivating, setIsActivating] = useState(false);
 
   const fetchProfile = useCallback(async () => {
-    const res = await fetch(`${API_URL}/business-profiles`, { headers: authHeaders() });
+    const res = await fetch(`${API_URL}/business-profiles`, { credentials: 'include' });
     if (!res.ok) return null;
     const json = await res.json();
     const profiles = Array.isArray(json) ? json : json.data || [];
@@ -142,21 +131,21 @@ export default function OssWizardClient() {
   }, []);
 
   const fetchRegistration = useCallback(async (profileId: string) => {
-    const res = await fetch(`${API_URL}/oss-wizard/registration/${profileId}`, { headers: authHeaders() });
+    const res = await fetch(`${API_URL}/oss-wizard/registration/${profileId}`, { credentials: 'include' });
     if (!res.ok) return null;
     const json = await res.json();
     return json.data;
   }, []);
 
   const fetchScore = useCallback(async (profileId: string) => {
-    const res = await fetch(`${API_URL}/oss-wizard/score/${profileId}`, { headers: authHeaders() });
+    const res = await fetch(`${API_URL}/oss-wizard/score/${profileId}`, { credentials: 'include' });
     if (!res.ok) return null;
     const json = await res.json();
     return json.data;
   }, []);
 
   const fetchDeadlines = useCallback(async (profileId: string) => {
-    const res = await fetch(`${API_URL}/oss-wizard/deadlines/${profileId}`, { headers: authHeaders() });
+    const res = await fetch(`${API_URL}/oss-wizard/deadlines/${profileId}`, { credentials: 'include' });
     if (!res.ok) return [];
     const json = await res.json();
     return json.data ?? [];
@@ -196,7 +185,8 @@ export default function OssWizardClient() {
     try {
       const res = await fetch(`${API_URL}/oss-wizard/activate/${profile.id}`, {
         method: 'POST',
-        headers: { ...authHeaders(), 'Content-Type': 'application/json' },
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(nibForm),
       });
       if (!res.ok) throw new Error('Aktivasi gagal');
@@ -214,7 +204,8 @@ export default function OssWizardClient() {
     try {
       const res = await fetch(`${API_URL}/oss-wizard/step/${stepId}`, {
         method: 'PATCH',
-        headers: { ...authHeaders(), 'Content-Type': 'application/json' },
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
       });
       if (!res.ok) throw new Error('Update gagal');
@@ -230,7 +221,7 @@ export default function OssWizardClient() {
       const formData = new FormData();
       formData.append('file', file);
       const res = await fetch(`${API_URL}/oss-wizard/step/${stepId}/evidence`, {
-        method: 'POST', headers: authHeaders(), body: formData,
+        method: 'POST', credentials: 'include', body: formData,
       });
       if (!res.ok) throw new Error('Upload gagal');
       if (profile) await loadData();
@@ -801,7 +792,7 @@ function EvidenceGallery({ profileId, onPreview }: { profileId: string; onPrevie
   useEffect(() => {
     (async () => {
       try {
-        const res = await fetch(`${API_URL}/oss-wizard/evidence/${profileId}`, { headers: authHeaders() });
+        const res = await fetch(`${API_URL}/oss-wizard/evidence/${profileId}`, { credentials: 'include' });
         if (res.ok) { const json = await res.json(); setItems(json.data ?? []); }
       } finally { setLoading(false); }
     })();
@@ -908,7 +899,7 @@ function ChecklistTab({ profileId }: { profileId: string }) {
     setLoading(true);
     try {
       const res = await fetch(`${API_URL}/compliance-items/business-profile/${profileId}`, {
-        headers: authHeaders(),
+        credentials: 'include',
       });
       if (res.ok) {
         const json = await res.json();
@@ -924,7 +915,7 @@ function ChecklistTab({ profileId }: { profileId: string }) {
     try {
       const res = await fetch(`${API_URL}/compliance-items/generate/${profileId}`, {
         method: 'POST',
-        headers: authHeaders(),
+        credentials: 'include',
       });
       if (res.ok) {
         const json = await res.json();
@@ -941,7 +932,7 @@ function ChecklistTab({ profileId }: { profileId: string }) {
       formData.append('file', file);
       const res = await fetch(`${API_URL}/compliance-items/${itemId}/evidence`, {
         method: 'POST',
-        headers: authHeaders(),
+        credentials: 'include',
         body: formData,
       });
       if (res.ok) {

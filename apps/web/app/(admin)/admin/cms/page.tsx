@@ -22,13 +22,11 @@ export default function AdminCmsListPage() {
   const [search, setSearch] = useState('');
 
   const apiUrl = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001/api/v1';
-  const getToken = () => document.cookie.split('; ').find(r => r.startsWith('access_token='))?.split('=')[1];
 
   const fetchPages = useCallback(async () => {
     try {
-      const token = getToken();
       const res = await fetch(`${apiUrl}/cms/pages`, {
-        headers: { ...(token && { Authorization: `Bearer ${token}` }) },
+        credentials: 'include',
       });
       if (res.ok) {
         const data = await res.json();
@@ -48,10 +46,9 @@ export default function AdminCmsListPage() {
   const handleDeletePage = async (id: string, title: string) => {
     if (!confirm(`Hapus halaman "${title}"? Semua sections akan ikut terhapus.`)) return;
     try {
-      const token = getToken();
       const res = await fetch(`${apiUrl}/cms/pages/${id}`, {
         method: 'DELETE',
-        headers: { ...(token && { Authorization: `Bearer ${token}` }) },
+        credentials: 'include',
       });
       if (res.ok) {
         setPages((prev) => prev.filter((p) => p.id !== id));
@@ -73,6 +70,34 @@ export default function AdminCmsListPage() {
     p.slug.toLowerCase().includes(search.toLowerCase())
   );
 
+  const hasHomePage = pages.some(p => p.slug === 'home');
+
+  const handleCreateHomePage = async () => {
+    try {
+      const res = await fetch(`${apiUrl}/cms/pages`, {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title: 'Landing Page',
+          slug: 'home',
+          metaDescription: 'LocalCompliance — AI-Powered Legal Compliance untuk bisnis Indonesia.',
+          isPublished: true,
+        }),
+      });
+      if (res.ok) {
+        const newPage = await res.json();
+        router.push(`/admin/cms/${newPage.id}`);
+      } else {
+        const err = await res.json().catch(() => null);
+        alert(err?.message || 'Gagal membuat halaman home');
+      }
+    } catch (e) {
+      console.error('Failed to create home page:', e);
+      alert('Gagal membuat halaman home');
+    }
+  };
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -89,6 +114,24 @@ export default function AdminCmsListPage() {
           </div>
         </div>
       </div>
+
+      {/* Warning: no home page */}
+      {!isLoading && !hasHomePage && (
+        <div className="flex items-center justify-between p-4 rounded-xl border border-amber-500/30 bg-amber-500/5">
+          <div>
+            <p className="text-sm font-semibold text-amber-600">Landing Page (home) belum ada</p>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              Halaman publik di / membutuhkan CMS page dengan slug &quot;home&quot;. Buat sekarang agar bisa diedit.
+            </p>
+          </div>
+          <button
+            onClick={handleCreateHomePage}
+            className="flex items-center gap-2 px-4 py-2 bg-amber-500 text-white rounded-lg font-medium text-sm hover:bg-amber-600 transition-colors whitespace-nowrap"
+          >
+            <Plus className="w-4 h-4" /> Buat Home Page
+          </button>
+        </div>
+      )}
 
       {/* Toolbar */}
       <div className="flex flex-col sm:flex-row gap-4 justify-between items-center">

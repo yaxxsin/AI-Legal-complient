@@ -27,12 +27,11 @@ export default function HrCalculatorPage() {
     e.preventDefault();
     setIsLoading(true);
     try {
-      const token = document.cookie.split('; ').find(row => row.startsWith('access_token='))?.split('=')[1];
       const res = await fetch('http://localhost:3001/api/v1/hr/calculate-bpjs', {
         method: 'POST',
+        credentials: 'include',
         headers: {
           'Content-Type': 'application/json',
-          ...(token && { Authorization: `Bearer ${token}` })
         },
         body: JSON.stringify({
           baseSalary: Number(baseSalary) || 0,
@@ -52,12 +51,11 @@ export default function HrCalculatorPage() {
     e.preventDefault();
     setIsLoading(true);
     try {
-      const token = document.cookie.split('; ').find(row => row.startsWith('access_token='))?.split('=')[1];
       const res = await fetch('http://localhost:3001/api/v1/hr/calculate-severance', {
         method: 'POST',
+        credentials: 'include',
         headers: {
           'Content-Type': 'application/json',
-          ...(token && { Authorization: `Bearer ${token}` })
         },
         body: JSON.stringify({
           salary: Number(severanceSalary) || 0,

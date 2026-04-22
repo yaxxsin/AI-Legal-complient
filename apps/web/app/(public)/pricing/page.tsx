@@ -42,18 +42,8 @@ export default function PricingPage() {
 
     setProcessing(planId);
     try {
-      // Assuming cookie has auth
-      const getCookie = (name: string) => {
-        if (typeof document === 'undefined') return null;
-        const match = document.cookie.match(new RegExp(`(^| )${name}=([^;]+)`));
-        return match ? match[2] : null;
-      };
-      
-      const token = getCookie('access_token');
-      
       const res = await apiClient<any>('/billing/checkout', {
         method: 'POST',
-        token: token ?? undefined,
         body: JSON.stringify({ planId, billingCycle }),
       });
 

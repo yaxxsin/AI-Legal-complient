@@ -39,10 +39,9 @@ export default function AdminFeatureFlagsPage() {
 
   const fetchFlags = async () => {
     try {
-      const token = document.cookie.split('; ').find(row => row.startsWith('access_token='))?.split('=')[1];
       const apiUrl = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001/api/v1';
       const res = await fetch(`${apiUrl}/feature-flags`, {
-        headers: { ...(token && { Authorization: `Bearer ${token}` }) }
+        credentials: 'include',
       });
       if (res.ok) {
         const data = await res.json();
@@ -62,27 +61,22 @@ export default function AdminFeatureFlagsPage() {
   const handleToggle = async (key: string, currentState: boolean, existingId?: string) => {
     setIsUpdating(key);
     try {
-      const token = document.cookie.split('; ').find(row => row.startsWith('access_token='))?.split('=')[1];
       const apiUrl = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001/api/v1';
       
       if (existingId) {
         // Update existing flag
         await fetch(`${apiUrl}/feature-flags/${existingId}`, {
           method: 'PATCH',
-          headers: { 
-            'Content-Type': 'application/json',
-            ...(token && { Authorization: `Bearer ${token}` }) 
-          },
+          credentials: 'include',
+          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ enabled: !currentState })
         });
       } else {
         // Create new flag
         await fetch(`${apiUrl}/feature-flags`, {
           method: 'POST',
-          headers: { 
-            'Content-Type': 'application/json',
-            ...(token && { Authorization: `Bearer ${token}` }) 
-          },
+          credentials: 'include',
+          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ key, enabled: !currentState, targetPlans: [], targetUsers: [] })
         });
       }
@@ -105,25 +99,20 @@ export default function AdminFeatureFlagsPage() {
     
     setIsUpdating(key + '-plans');
     try {
-      const token = document.cookie.split('; ').find(row => row.startsWith('access_token='))?.split('=')[1];
       const apiUrl = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001/api/v1';
       
       if (existingId) {
         await fetch(`${apiUrl}/feature-flags/${existingId}`, {
           method: 'PATCH',
-          headers: { 
-            'Content-Type': 'application/json',
-            ...(token && { Authorization: `Bearer ${token}` }) 
-          },
+          credentials: 'include',
+          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ targetPlans: newPlans })
         });
       } else {
         await fetch(`${apiUrl}/feature-flags`, {
           method: 'POST',
-          headers: { 
-            'Content-Type': 'application/json',
-            ...(token && { Authorization: `Bearer ${token}` }) 
-          },
+          credentials: 'include',
+          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ key, enabled: true, targetPlans: newPlans, targetUsers: [] })
         });
       }

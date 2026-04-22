@@ -25,13 +25,6 @@ export default function AdminArticleEditorPage() {
   const { user } = useAuthStore();
   const isNew = params.id === 'new';
   
-  const getCookie = (name: string) => {
-    if (typeof document === 'undefined') return null;
-    const match = document.cookie.match(new RegExp(`(^| )${name}=([^;]+)`));
-    return match ? match[2] : null;
-  };
-  const token = getCookie('access_token') ?? undefined;
-
   const [loading, setLoading] = useState(!isNew);
   const [saving, setSaving] = useState(false);
   const [categories, setCategories] = useState<{ id: string; name: string }[]>([]);
@@ -48,10 +41,8 @@ export default function AdminArticleEditorPage() {
   });
 
   useEffect(() => {
-    if (!token) return;
-
     // Load categories
-    apiClient<{ id: string; name: string }[]>('/articles/categories', { token })
+    apiClient<{ id: string; name: string }[]>('/articles/categories')
       .then((res) => {
         if (Array.isArray(res.data)) {
           setCategories(res.data);
@@ -64,7 +55,7 @@ export default function AdminArticleEditorPage() {
 
     // Load existing article
     if (!isNew) {
-      apiClient<any>(`/admin/articles/${params.id}`, { token })
+      apiClient<any>(`/admin/articles/${params.id}`)
         .then((res) => {
           const art = res.data;
           setFormData({
@@ -81,7 +72,7 @@ export default function AdminArticleEditorPage() {
         .catch(() => router.push('/admin/articles'))
         .finally(() => setLoading(false));
     }
-  }, [token, isNew, params.id, router]);
+  }, [isNew, params.id, router]);
 
   const handleTitleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const title = e.target.value;
@@ -115,13 +106,11 @@ export default function AdminArticleEditorPage() {
       if (isNew) {
         await apiClient('/admin/articles', {
           method: 'POST',
-          token,
           body: JSON.stringify(payload),
         });
       } else {
         await apiClient(`/admin/articles/${params.id}`, {
           method: 'PUT',
-          token,
           body: JSON.stringify(payload),
         });
       }

@@ -17,10 +17,9 @@ export function TeamTab() {
 
   const fetchTeams = async () => {
     try {
-      const token = document.cookie.split('; ').find(row => row.startsWith('access_token='))?.split('=')[1];
       const apiUrl = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001/api/v1';
       const res = await fetch(`${apiUrl}/teams`, {
-        headers: { ...(token && { Authorization: `Bearer ${token}` }) }
+        credentials: 'include',
       });
       if (res.ok) {
         const data = await res.json();
@@ -45,14 +44,11 @@ export function TeamTab() {
     e.preventDefault();
     if (!newTeamName) return;
     try {
-      const token = document.cookie.split('; ').find(row => row.startsWith('access_token='))?.split('=')[1];
       const apiUrl = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001/api/v1';
       const res = await fetch(`${apiUrl}/teams`, {
         method: 'POST',
-        headers: { 
-          'Content-Type': 'application/json',
-          ...(token && { Authorization: `Bearer ${token}` }) 
-        },
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ name: newTeamName })
       });
       if (res.ok) {
@@ -71,14 +67,11 @@ export function TeamTab() {
     if (!selectedTeamId || !inviteEmail) return;
 
     try {
-      const token = document.cookie.split('; ').find(row => row.startsWith('access_token='))?.split('=')[1];
       const apiUrl = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001/api/v1';
       const res = await fetch(`${apiUrl}/teams/${selectedTeamId}/invitations`, {
         method: 'POST',
-        headers: { 
-          'Content-Type': 'application/json',
-          ...(token && { Authorization: `Bearer ${token}` }) 
-        },
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email: inviteEmail, role: inviteRole })
       });
       
@@ -100,11 +93,10 @@ export function TeamTab() {
   const handleRemoveMember = async (teamId: string, userIdTarget: string) => {
     if (!confirm('Hapus anggota ini dari tim?')) return;
     try {
-      const token = document.cookie.split('; ').find(row => row.startsWith('access_token='))?.split('=')[1];
       const apiUrl = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001/api/v1';
       const res = await fetch(`${apiUrl}/teams/${teamId}/members/${userIdTarget}`, {
         method: 'DELETE',
-        headers: { ...(token && { Authorization: `Bearer ${token}` }) }
+        credentials: 'include',
       });
       if (res.ok) fetchTeams();
     } catch (e) {

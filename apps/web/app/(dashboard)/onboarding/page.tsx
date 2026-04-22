@@ -46,13 +46,6 @@ const INITIAL_DATA: WizardData = {
   npwp: '',
 };
 
-/** Helper to read cookie value */
-function getCookie(name: string): string | null {
-  if (typeof document === 'undefined') return null;
-  const match = document.cookie.match(new RegExp(`(^| )${name}=([^;]+)`));
-  return match ? match[2] : null;
-}
-
 export default function OnboardingPage() {
   const router = useRouter();
   const [currentStep, setCurrentStep] = useState(1);
@@ -67,10 +60,8 @@ export default function OnboardingPage() {
   useEffect(() => {
     async function checkExistingDraft() {
       try {
-        const token = getCookie('access_token');
-        if (!token) return;
         const res = await fetch(`${apiUrl}/business-profiles`, {
-          headers: { Authorization: `Bearer ${token}` }
+          credentials: 'include',
         });
         if (res.ok) {
           const body = await res.json();
@@ -90,22 +81,20 @@ export default function OnboardingPage() {
     checkExistingDraft();
   }, [apiUrl]);
 
-  /** Get auth headers from JWT cookie */
-  function getHeaders(): Record<string, string> {
-    const token = getCookie('access_token');
+  /** Get common fetch options with credentials */
+  function getFetchOptions(): RequestInit {
     return {
-      'Content-Type': 'application/json',
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
     };
   }
 
   /** Create draft profile on first next click */
   async function createDraft(): Promise<string | null> {
     try {
-      const headers = getHeaders();
       const res = await fetch(`${apiUrl}/business-profiles`, {
         method: 'POST',
-        headers,
+        ...getFetchOptions(),
         body: JSON.stringify({ entityType: data.entityType }),
       });
 
@@ -154,10 +143,9 @@ export default function OnboardingPage() {
     };
 
     try {
-      const headers = getHeaders();
       await fetch(`${apiUrl}/business-profiles/${profileId}/step`, {
         method: 'PATCH',
-        headers,
+        ...getFetchOptions(),
         body: JSON.stringify({ step, data: stepDataMap[step] }),
       });
     } catch {
@@ -209,10 +197,9 @@ export default function OnboardingPage() {
       await saveStep(5);
 
       // Finalize profile
-      const headers = getHeaders();
       const res = await fetch(`${apiUrl}/business-profiles/${profileId}`, {
         method: 'PUT',
-        headers,
+        ...getFetchOptions(),
         body: JSON.stringify({
           ...data,
           establishmentDate: data.establishmentDate || undefined,
@@ -229,7 +216,7 @@ export default function OnboardingPage() {
       if (data.hasNib) {
         const activateRes = await fetch(`${apiUrl}/oss-wizard/activate/${profileId}`, {
           method: 'POST',
-          headers,
+          ...getFetchOptions(),
           body: JSON.stringify({
             nibNumber: data.nibNumber,
             nibIssuedDate: data.nibIssuedDate,
@@ -245,7 +232,7 @@ export default function OnboardingPage() {
       // Mark onboarding complete
       await fetch(`${apiUrl}/users/me`, {
         method: 'PATCH',
-        headers,
+        ...getFetchOptions(),
         body: JSON.stringify({ onboardingCompleted: true }),
       });
 
@@ -271,13 +258,12 @@ export default function OnboardingPage() {
     setError('');
     setIsSubmitting(true);
     try {
-      const token = getCookie('access_token');
       const formData = new FormData();
       formData.append('file', file);
 
       const res = await fetch(`${apiUrl}/business-profiles/ocr/scan`, {
         method: 'POST',
-        headers: token ? { Authorization: `Bearer ${token}` } : {},
+        credentials: 'include',
         body: formData,
       });
 

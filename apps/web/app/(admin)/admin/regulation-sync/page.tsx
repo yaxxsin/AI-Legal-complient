@@ -26,14 +26,10 @@ export default function AdminRegulationSyncPage() {
 
   const apiUrl = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001/api/v1';
 
-  const getToken = () =>
-    document.cookie.split('; ').find(r => r.startsWith('access_token='))?.split('=')[1];
-
   const fetchHistory = useCallback(async () => {
     try {
-      const token = getToken();
       const res = await fetch(`${apiUrl}/regulation-sync/history?limit=30`, {
-        headers: { ...(token && { Authorization: `Bearer ${token}` }) },
+        credentials: 'include',
       });
       if (res.ok) {
         const data = await res.json();
@@ -54,12 +50,11 @@ export default function AdminRegulationSyncPage() {
     setIsSyncing(true);
     setSyncResult(null);
     try {
-      const token = getToken();
       const res = await fetch(`${apiUrl}/regulation-sync/trigger`, {
         method: 'POST',
+        credentials: 'include',
         headers: {
           'Content-Type': 'application/json',
-          ...(token && { Authorization: `Bearer ${token}` }),
         },
       });
       if (res.ok) {

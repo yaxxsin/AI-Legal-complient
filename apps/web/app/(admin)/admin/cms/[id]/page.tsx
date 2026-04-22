@@ -275,34 +275,29 @@ export default function AdminCmsEditorPage({ params }: { params: Promise<{ id: s
   const router = useRouter();
 
   const [pageId, setPageId] = useState<string>(isNew ? '' : paramId);
-  const [page, setPage] = useState<CmsPageData | null>(null);
+  const [page, setPage] = useState<CmsPageData | null>(
+    isNew
+      ? {
+          id: '',
+          title: 'Halaman Baru',
+          slug: '',
+          metaDescription: '',
+          isPublished: false,
+          sections: [],
+        }
+      : null,
+  );
   const [isLoading, setIsLoading] = useState(!isNew);
   const [isSaving, setIsSaving] = useState(false);
 
   const apiUrl = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001/api/v1';
-  const getToken = () => document.cookie.split('; ').find(r => r.startsWith('access_token='))?.split('=')[1];
-
-  /* --- Init new page state --- */
-  useEffect(() => {
-    if (isNew) {
-      setPage({
-        id: '',
-        title: 'Halaman Baru',
-        slug: `page-${Date.now()}`,
-        metaDescription: '',
-        isPublished: false,
-        sections: [],
-      });
-    }
-  }, [isNew]);
 
   /* --- Fetch existing page --- */
   const fetchPage = useCallback(async () => {
     if (isNew) return;
     try {
-      const token = getToken();
       const res = await fetch(`${apiUrl}/cms/pages/${paramId}`, {
-        headers: { ...(token && { Authorization: `Bearer ${token}` }) },
+        credentials: 'include',
       });
       if (res.ok) {
         const data = await res.json();
@@ -331,16 +326,15 @@ export default function AdminCmsEditorPage({ params }: { params: Promise<{ id: s
 
     setIsSaving(true);
     try {
-      const token = getToken();
       let currentId = pageId;
 
       if (isNew && !currentId) {
         // Create new page first
         const createRes = await fetch(`${apiUrl}/cms/pages`, {
           method: 'POST',
+          credentials: 'include',
           headers: {
             'Content-Type': 'application/json',
-            ...(token && { Authorization: `Bearer ${token}` }),
           },
           body: JSON.stringify({
             title: page.title,
@@ -364,9 +358,9 @@ export default function AdminCmsEditorPage({ params }: { params: Promise<{ id: s
         // Update existing page settings
         const updateRes = await fetch(`${apiUrl}/cms/pages/${currentId}`, {
           method: 'PUT',
+          credentials: 'include',
           headers: {
             'Content-Type': 'application/json',
-            ...(token && { Authorization: `Bearer ${token}` }),
           },
           body: JSON.stringify({
             title: page.title,
@@ -388,9 +382,9 @@ export default function AdminCmsEditorPage({ params }: { params: Promise<{ id: s
       if (page.sections.length > 0) {
         await fetch(`${apiUrl}/cms/pages/${currentId}/sections`, {
           method: 'PUT',
+          credentials: 'include',
           headers: {
             'Content-Type': 'application/json',
-            ...(token && { Authorization: `Bearer ${token}` }),
           },
           body: JSON.stringify({
             sections: page.sections.map((s, i) => ({ ...s, sortOrder: i + 1 })),
@@ -510,7 +504,15 @@ export default function AdminCmsEditorPage({ params }: { params: Promise<{ id: s
                 <input
                   type="text"
                   value={page.title}
-                  onChange={(e) => setPage({ ...page, title: e.target.value })}
+                  onChange={(e) => {
+                    const newTitle = e.target.value;
+                    const updates: Partial<CmsPageData> = { title: newTitle };
+                    // Auto-generate slug from title for new pages with empty slug
+                    if (isNew && !page.slug) {
+                      updates.slug = newTitle.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+                    }
+                    setPage({ ...page, ...updates });
+                  }}
                   className="w-full px-3 py-2 rounded-lg border border-input bg-background/50 text-sm focus:ring-2 focus:ring-primary/20"
                 />
               </div>
