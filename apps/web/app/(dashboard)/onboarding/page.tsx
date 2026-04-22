@@ -25,6 +25,7 @@ interface WizardData {
   isOnlineBusiness: boolean;
   hasNib: boolean;
   nibNumber: string;
+  nibIssuedDate?: string;
   npwp: string;
 }
 
@@ -41,6 +42,7 @@ const INITIAL_DATA: WizardData = {
   isOnlineBusiness: false,
   hasNib: false,
   nibNumber: '',
+  nibIssuedDate: '',
   npwp: '',
 };
 
@@ -146,6 +148,7 @@ export default function OnboardingPage() {
       5: {
         hasNib: data.hasNib,
         nibNumber: data.nibNumber,
+        nibIssuedDate: data.nibIssuedDate,
         npwp: data.npwp,
       },
     };
@@ -220,6 +223,23 @@ export default function OnboardingPage() {
         const err = await res.json().catch(() => ({}));
         setError(err.message ?? 'Gagal menyimpan profil');
         return;
+      }
+
+      // If NIB provided, activate roadmap
+      if (data.hasNib) {
+        const activateRes = await fetch(`${apiUrl}/oss-wizard/activate/${profileId}`, {
+          method: 'POST',
+          headers,
+          body: JSON.stringify({
+            nibNumber: data.nibNumber,
+            nibIssuedDate: data.nibIssuedDate,
+          }),
+        });
+        if (!activateRes.ok) {
+          const err = await activateRes.json().catch(() => ({}));
+          setError(err.message ?? 'Gagal mengaktifkan NIB');
+          return;
+        }
       }
 
       // Mark onboarding complete
@@ -363,6 +383,7 @@ export default function OnboardingPage() {
           <WizardStep5
             hasNib={data.hasNib}
             nibNumber={data.nibNumber}
+            nibIssuedDate={data.nibIssuedDate || ''}
             npwp={data.npwp}
             onChange={updateField}
           />

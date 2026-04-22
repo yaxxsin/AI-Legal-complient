@@ -3,11 +3,12 @@
 interface Step5Props {
   hasNib: boolean;
   nibNumber: string;
+  nibIssuedDate: string;
   npwp: string;
   onChange: (field: string, value: unknown) => void;
 }
 
-export function WizardStep5({ hasNib, nibNumber, npwp, onChange }: Step5Props) {
+export function WizardStep5({ hasNib, nibNumber, nibIssuedDate, npwp, onChange }: Step5Props) {
   return (
     <div className="space-y-4">
       <div>
@@ -50,6 +51,14 @@ export function WizardStep5({ hasNib, nibNumber, npwp, onChange }: Step5Props) {
                 onChange={(e) => onChange('nibNumber', e.target.value)}
                 placeholder="1234567890123"
                 maxLength={50}
+                className="settings-input"
+              />
+              <label htmlFor="ob-nib-issued-date" className="text-sm font-medium">Tanggal Terbit NIB</label>
+              <input
+                id="ob-nib-issued-date"
+                type="date"
+                value={nibIssuedDate}
+                onChange={(e) => onChange('nibIssuedDate', e.target.value)}
                 className="settings-input"
               />
             </div>
