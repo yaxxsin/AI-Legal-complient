@@ -57,3 +57,5 @@
 - [2026-04-21] User-facing: Integrated Pricing Upgrade "Paywall" logic. If a user hits a plan limit, the UI now displays a premium prompt to upgrade, with a smart backend that recycles existing draf-profiles to prevent unnecessary blocks.
 - [2026-04-22] 3d22185 → feature/phase-21-checklist | [phase-21] feat: implement post-nib compliance roadmap and scoring (13 files, +1722 -23)
 - [2026-04-22] Phase 21 redesigned: OSS Wizard transformed into "Post-NIB Compliance Roadmap". Added 13-step compliance framework (Documents, Monthly/Annual Tax), automated scoring engine, tax deadline calendar, and NIB activation flow.
+- [2026-04-22] 47ae50a → feature/phase-21-checklist | [phase-21] feat: merge compliance checklist into roadmap and implement tax notifications (8 files, +326 -440)
+- [2026-04-22] System Consolidation: Merged "Checklist KBLI" into "Roadmap Kepatuhan" UI as a tab. /checklist route now redirects to roadmap. Implemented @Cron tax-deadline-reminders in OssWizardService to send H-7/H-1 alerts.

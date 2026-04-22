@@ -12,7 +12,7 @@
 
 NOW.Task: Phase 21 Completed
 NOW.Step: 8/8 - All done
-CRUMBS: saved: 3d22185
+CRUMBS: Phase 21 merged checklist + tax reminders (47ae50a)
 
 ## PHASE INDEX
 
