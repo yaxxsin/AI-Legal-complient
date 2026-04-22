@@ -17,6 +17,7 @@ import { CreateTemplateDto, UpdateTemplateDto, GenerateDocumentDto } from './dto
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { FeatureFlagGuard } from '../../common/guards/feature-flag.guard';
 import { RequireFeature } from '../../common/decorators/feature-flag.decorator';
+import { UsageLimitService } from '../billing/usage-limits.service';
 
 @ApiTags('documents')
 @ApiBearerAuth()
@@ -24,7 +25,10 @@ import { RequireFeature } from '../../common/decorators/feature-flag.decorator';
 @RequireFeature('menu-documents')
 @Controller('documents')
 export class DocumentsController {
-  constructor(private readonly documentsService: DocumentsService) {}
+  constructor(
+    private readonly documentsService: DocumentsService,
+    private readonly usageLimits: UsageLimitService,
+  ) {}
 
   // ── Templates (User) ──────────────────
 
@@ -80,9 +84,11 @@ export class DocumentsController {
   /** Generate a document from template + form data */
   @Post('generate')
   async generateDocument(
-    @Req() req: { user: { id: string } },
+    @Req() req: { user: { id: string; plan: string } },
     @Body() dto: GenerateDocumentDto,
   ) {
+    // Enforce document generation limit per plan
+    await this.usageLimits.checkDocumentLimit(req.user.id, req.user.plan);
     return this.documentsService.generateDocument(req.user.id, dto);
   }
 

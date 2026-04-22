@@ -184,7 +184,7 @@ export class UsersService {
     return user;
   }
 
-  /** Update user plan for admin purposes */
+  /** Update user plan for admin purposes — syncs both User and Subscription */
   async updatePlan(userId: string, plan: string) {
     const allowedPlans = ['free', 'starter', 'growth', 'business'];
     if (!allowedPlans.includes(plan)) {
@@ -193,13 +193,39 @@ export class UsersService {
 
     await this.findById(userId);
 
-    const user = await this.prisma.user.update({
-      where: { id: userId },
-      data: { plan },
-      select: { id: true, email: true, plan: true },
+    // Sync both User.plan and Subscription.plan atomically
+    const user = await this.prisma.$transaction(async (tx: any) => {
+      const updated = await tx.user.update({
+        where: { id: userId },
+        data: { plan },
+        select: { id: true, email: true, plan: true },
+      });
+
+      // Also sync subscription if exists
+      const sub = await tx.subscription.findUnique({ where: { userId } });
+      if (sub) {
+        await tx.subscription.update({
+          where: { id: sub.id },
+          data: { plan, status: plan === 'free' ? 'active' : sub.status },
+        });
+      } else if (plan !== 'free') {
+        // Create subscription record if upgrading from no-subscription state
+        await tx.subscription.create({
+          data: {
+            userId,
+            plan,
+            billingCycle: 'monthly',
+            status: 'active',
+            currentPeriodStart: new Date(),
+            currentPeriodEnd: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+          },
+        });
+      }
+
+      return updated;
     });
 
-    this.logger.log(`User ${userId} plan updated to ${plan}`);
+    this.logger.log(`[Admin] User ${userId} plan updated to ${plan} (synced)`);
     return user;
   }
 

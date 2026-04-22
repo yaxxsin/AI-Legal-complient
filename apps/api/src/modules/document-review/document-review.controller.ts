@@ -14,6 +14,7 @@ import { DocumentReviewService } from './document-review.service';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { FeatureFlagGuard } from '../../common/guards/feature-flag.guard';
 import { RequireFeature } from '../../common/decorators/feature-flag.decorator';
+import { UsageLimitService } from '../billing/usage-limits.service';
 
 @ApiTags('document-review')
 @ApiBearerAuth()
@@ -21,7 +22,10 @@ import { RequireFeature } from '../../common/decorators/feature-flag.decorator';
 @RequireFeature('menu-doc-review')
 @Controller('document-review')
 export class DocumentReviewController {
-  constructor(private readonly reviewService: DocumentReviewService) {}
+  constructor(
+    private readonly reviewService: DocumentReviewService,
+    private readonly usageLimits: UsageLimitService,
+  ) {}
 
   @Post('upload')
   @UseInterceptors(FileInterceptor('file'))
@@ -38,7 +42,9 @@ export class DocumentReviewController {
     },
   })
   async uploadDocument(@Req() req: any, @UploadedFile() file: Express.Multer.File) {
-    return this.reviewService.queueForReview(req.user.sub, file);
+    // Enforce review limit per plan
+    await this.usageLimits.checkReviewLimit(req.user.id, req.user.plan);
+    return this.reviewService.queueForReview(req.user.id, file);
   }
 
   @Get(':id')

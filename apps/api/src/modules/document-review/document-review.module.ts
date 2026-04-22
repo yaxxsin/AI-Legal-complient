@@ -5,11 +5,13 @@ import { DocumentReviewController } from './document-review.controller';
 import { ReviewProcessor } from './review.processor';
 import { PrismaModule } from '../../database/prisma.module';
 import { ChatModule } from '../chat/chat.module';
+import { BillingModule } from '../billing/billing.module';
 
 @Module({
   imports: [
     PrismaModule,
     ChatModule, // Reusing ChatService for interacting with Ollama
+    BillingModule,
     BullModule.registerQueue({
       name: 'document-review-queue',
     }),

@@ -1,4 +1,5 @@
 import { Injectable, Logger, BadRequestException, NotFoundException } from '@nestjs/common';
+import { Cron, CronExpression } from '@nestjs/schedule';
 import { PrismaService } from '../../database/prisma.service';
 import { MidtransService } from './midtrans.service';
 import { PLANS } from './billing.constants';
@@ -258,6 +259,39 @@ export class BillingService {
     });
     
     return { success: true, message: 'Plan akan dibatalkan pada akhir periode' };
+  }
+
+  /** Cron: downgrade expired subscriptions daily at 3 AM */
+  @Cron(CronExpression.EVERY_DAY_AT_3AM)
+  async handleExpiredSubscriptions() {
+    const now = new Date();
+
+    // Find active subscriptions that are past their period end AND marked for cancellation
+    const expired = await this.prisma.subscription.findMany({
+      where: {
+        status: 'active',
+        cancelAtPeriodEnd: true,
+        currentPeriodEnd: { lt: now },
+      },
+    });
+
+    for (const sub of expired) {
+      await this.prisma.$transaction(async (tx: any) => {
+        await tx.subscription.update({
+          where: { id: sub.id },
+          data: { status: 'cancelled', plan: 'free' },
+        });
+        await tx.user.update({
+          where: { id: sub.userId },
+          data: { plan: 'free' },
+        });
+      });
+      this.logger.log(`[Cron] Subscription expired → user ${sub.userId} downgraded to free`);
+    }
+
+    if (expired.length > 0) {
+      this.logger.log(`[Cron] Downgraded ${expired.length} expired subscriptions`);
+    }
   }
 
   async generateInvoicePdf(invoiceId: string, userId: string): Promise<Buffer> {

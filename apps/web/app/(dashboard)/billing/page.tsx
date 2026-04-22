@@ -4,8 +4,10 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { Download, CreditCard, Receipt, Loader2, ArrowRight, AlertTriangle } from 'lucide-react';
 import { apiClient } from '@/lib/api-client';
+import { useAuthStore } from '@/stores/auth-store';
 
 export default function BillingDashboardPage() {
+  const { user } = useAuthStore();
   const [subscription, setSubscription] = useState<any>(null);
   const [invoices, setInvoices] = useState<any[]>([]);
   const [plans, setPlans] = useState<any[]>([]);
@@ -71,8 +73,10 @@ export default function BillingDashboardPage() {
     );
   }
 
-  const activePlan = plans.find(p => p.id === subscription?.plan) || { name: 'Free', price_monthly: 0 };
-  const isPaid = subscription && subscription.plan !== 'free';
+  // Use user.plan as source of truth (synced by webhook + admin), fallback to subscription
+  const currentPlanId = user?.plan ?? subscription?.plan ?? 'free';
+  const activePlan = plans.find(p => p.id === currentPlanId) || { name: 'Free', price_monthly: 0 };
+  const isPaid = currentPlanId !== 'free';
 
   return (
     <div className="space-y-8 max-w-5xl mx-auto pb-20">

@@ -171,17 +171,21 @@ export default function PricingPage() {
 
                 <button
                   onClick={() => handleCheckout(plan.id)}
-                  disabled={processing !== null}
+                  disabled={processing !== null || user?.plan === plan.id}
                   className={`w-full py-3 rounded-xl font-semibold transition-all flex items-center justify-center gap-2 ${
-                    plan.highlight
-                      ? 'bg-primary text-primary-foreground hover:bg-primary/90'
-                      : 'bg-muted text-foreground hover:bg-muted/80'
+                    user?.plan === plan.id
+                      ? 'bg-emerald-500/10 text-emerald-600 border border-emerald-500/30 cursor-default'
+                      : plan.highlight
+                        ? 'bg-primary text-primary-foreground hover:bg-primary/90'
+                        : 'bg-muted text-foreground hover:bg-muted/80'
                   }`}
                 >
                   {processing === plan.id ? (
                     <Loader2 className="w-5 h-5 animate-spin" />
+                  ) : user?.plan === plan.id ? (
+                    <><Check className="w-4 h-4" /> Paket Aktif</>
                   ) : (
-                    user?.plan === plan.id ? 'Current Plan' : 'Pilih Paket'
+                    'Pilih Paket'
                   )}
                 </button>
               </div>

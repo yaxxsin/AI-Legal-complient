@@ -1,6 +1,7 @@
 import { Controller, Get, Post, Body, Req, UseGuards, Res, Param } from '@nestjs/common';
 import { Response } from 'express';
 import { BillingService } from './billing.service';
+import { UsageLimitService } from './usage-limits.service';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { Request } from 'express';
 
@@ -10,12 +11,16 @@ interface AuthenticatedRequest extends Request {
     id: string;
     email: string;
     role: string;
+    plan: string;
   };
 }
 
 @Controller('billing')
 export class BillingController {
-  constructor(private readonly billingService: BillingService) {}
+  constructor(
+    private readonly billingService: BillingService,
+    private readonly usageLimits: UsageLimitService,
+  ) {}
 
   @Get('plans')
   getPlans() {
@@ -74,6 +79,15 @@ export class BillingController {
     return {
       success: true,
       data: await this.billingService.cancelSubscription(req.user.id),
+    };
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Get('usage')
+  async getUsage(@Req() req: AuthenticatedRequest) {
+    return {
+      success: true,
+      data: await this.usageLimits.getUsageSummary(req.user.id, req.user.plan),
     };
   }
 

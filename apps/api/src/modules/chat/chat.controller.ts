@@ -5,6 +5,7 @@ import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { FeatureFlagGuard } from '../../common/guards/feature-flag.guard';
 import { RequireFeature } from '../../common/decorators/feature-flag.decorator';
 import { ChatService } from './chat.service';
+import { UsageLimitService } from '../billing/usage-limits.service';
 
 interface ChatRequestDto {
   message: string;
@@ -18,7 +19,10 @@ interface ChatRequestDto {
 @RequireFeature('menu-chat')
 @Controller('chat')
 export class ChatController {
-  constructor(private readonly chatService: ChatService) {}
+  constructor(
+    private readonly chatService: ChatService,
+    private readonly usageLimits: UsageLimitService,
+  ) {}
 
   @Get('conversations')
   @ApiOperation({ summary: 'Get user conversation history' })
@@ -41,9 +45,12 @@ export class ChatController {
   @ApiOperation({ summary: 'Send message to ComplianceBot' })
   async chat(
     @Body() dto: ChatRequestDto,
-    @Req() req: { user: { id: string } },
+    @Req() req: { user: { id: string; plan: string } },
   ) {
+    // Enforce chat limit per plan
+    await this.usageLimits.checkChatLimit(req.user.id, req.user.plan);
+
     const result = await this.chatService.chat(dto.message, req.user.id, dto.conversationId);
-    return { success: true, data: result }; // result includes conversationId and reply
+    return { success: true, data: result };
   }
 }
