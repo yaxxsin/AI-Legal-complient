@@ -64,3 +64,11 @@
 - [2026-04-22] 8c387ef → feature/phase-23-midtrans | [cms] feat: full CRUD CMS builder — create/edit/delete pages + structured section editors (20 files, +1316 -320)
 - [2026-04-22] bc95c33 → feature/phase-23-midtrans | [cms] fix: resolve client-side error on create page + add home page detection with auto-create (17 files, +136 -194)
 - [2026-04-22] 912b295 → feature/phase-23-midtrans | [admin] feat: user management CRUD + real-time overview dashboard + fix CMS editor React error 438 (12 files, +882 -76)
+- [2026-04-22] 8e4c322 → feature/phase-24-security | [phase-24] feat: session management, security hardening, httpOnly cookies + hotfixes (billing, CMS, nibIssuedDate, cookie migration)
+- [2026-04-22] Phase 24 complete: Session Management & Security Hardening. httpOnly cookies, refresh token rotation, Session DB model, rate limiting (ThrottlerModule), cookie-parser, session management UI, 14 frontend files migrated from document.cookie to credentials:include.
+- [2026-04-22] [HOTFIX] Fixed billing controller req.user.userId → req.user.id (6 occurrences), teams controller same fix (6 occurrences).
+- [2026-04-22] [HOTFIX] Fixed CMS controller double prefix v1/cms → cms, @Roles('ADMIN') → @Roles('admin'), SupabaseAuthGuard → JwtAuthGuard.
+- [2026-04-22] [HOTFIX] Fixed nibIssuedDate validation error — added field to UpdateBusinessProfileDto.
+- [2026-04-22] [HOTFIX] Fixed Midtrans checkout 500 — added mock mode for placeholder keys, wrapped error in BadRequestException.
+- [2026-04-22] 56b766c → feature/phase-25-multiprofile | [phase-25] feat: multi-profile separation with sidebar switcher + hotfixes (10 files, +314 -29)
+- [2026-04-22] Multi-profile separation: ProfileSwitcher in sidebar, useProfileStore (Zustand), oss-wizard uses activeProfileId, dashboard shows compliance score per profile, starter plan limit fixed (2→1). Chat: @SkipThrottle + better error messages.
