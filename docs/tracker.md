@@ -59,3 +59,4 @@
 - [2026-04-22] Phase 21 redesigned: OSS Wizard transformed into "Post-NIB Compliance Roadmap". Added 13-step compliance framework (Documents, Monthly/Annual Tax), automated scoring engine, tax deadline calendar, and NIB activation flow.
 - [2026-04-22] 47ae50a → feature/phase-21-checklist | [phase-21] feat: merge compliance checklist into roadmap and implement tax notifications (8 files, +326 -440)
 - [2026-04-22] System Consolidation: Merged "Checklist KBLI" into "Roadmap Kepatuhan" UI as a tab. /checklist route now redirects to roadmap. Implemented @Cron tax-deadline-reminders in OssWizardService to send H-7/H-1 alerts.
+- [2026-04-22] Phase 23 complete: Midtrans Sandbox Integration & Payment Testing. Added webhook idempotency, retry logic, enhanced logging, env-based Snap URL switching, comprehensive E2E test suite, and sandbox testing guide.

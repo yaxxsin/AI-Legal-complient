@@ -18,6 +18,13 @@ export class MidtransService {
     this.serverKey = this.configService.get<string>('MIDTRANS_SERVER_KEY') || 'SB-Mid-server-DUMMY';
     this.clientKey = this.configService.get<string>('MIDTRANS_CLIENT_KEY') || 'SB-Mid-client-DUMMY';
 
+    // Validate keys on startup
+    if (this.serverKey === 'SB-Mid-server-DUMMY' || this.clientKey === 'SB-Mid-client-DUMMY') {
+      this.logger.warn('⚠️  Midtrans keys not configured! Using dummy keys. Payment will not work.');
+    } else {
+      this.logger.log(`✅ Midtrans initialized (${this.isProduction ? 'PRODUCTION' : 'SANDBOX'} mode)`);
+    }
+
     this.snap = new midtransClient.Snap({
       isProduction: this.isProduction,
       serverKey: this.serverKey,

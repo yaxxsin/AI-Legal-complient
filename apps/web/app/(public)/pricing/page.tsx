@@ -90,9 +90,13 @@ export default function PricingPage() {
 
   return (
     <div className="min-h-screen bg-background border-t">
-      {/* Load Midtrans Snap Script */}
+      {/* Load Midtrans Snap Script - dynamically based on env */}
       <Script 
-        src="https://app.sandbox.midtrans.com/snap/snap.js" 
+        src={
+          process.env.NEXT_PUBLIC_MIDTRANS_IS_PRODUCTION === 'true'
+            ? 'https://app.midtrans.com/snap/snap.js'
+            : 'https://app.sandbox.midtrans.com/snap/snap.js'
+        }
         data-client-key={process.env.NEXT_PUBLIC_MIDTRANS_CLIENT_KEY || 'SB-Mid-client-DUMMY'} 
         strategy="lazyOnload"
       />

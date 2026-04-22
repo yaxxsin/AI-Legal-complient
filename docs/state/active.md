@@ -4,15 +4,15 @@
 > Menunjuk ke phase state yang sedang aktif.
 
 ## ACTIVE
-- **Phase**: 21: OSS/NIB Wizard & Evidence
-- **State File**: phase-21.md
+- **Phase**: 23: Midtrans Sandbox Integration & Payment Testing
+- **State File**: phase-23.md
 - **Developer**: Engine AI
 - **Since**: 2026-04-22
 - **Status**: ✅ Completed
 
-NOW.Task: Phase 21 Completed
-NOW.Step: 8/8 - All done
-CRUMBS: Phase 21 merged checklist + tax reminders (47ae50a)
+NOW.Task: Phase 23 Completed
+NOW.Step: 6/6 - All done
+CRUMBS: Midtrans sandbox integration complete with E2E tests
 
 ## PHASE INDEX
 

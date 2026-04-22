@@ -39,6 +39,7 @@ export class BillingService {
     if (amount === 0) {
       // Handle Free plan directly
       await this.activateFreePlan(userId);
+      this.logger.log(`[Checkout] User ${userId} activated Free plan`);
       return { token: null, redirect_url: null, free: true };
     }
 
@@ -69,7 +70,7 @@ export class BillingService {
       subId = subscription.id;
     }
 
-    // Create Voice Draft
+    // Create Invoice Draft
     await this.prisma.invoice.create({
       data: {
         userId,
@@ -79,6 +80,8 @@ export class BillingService {
         midtransTransactionId: orderId,
       },
     });
+
+    this.logger.log(`[Checkout] User ${userId} initiated checkout for ${planId} (${billingCycle}) - Order: ${orderId}`);
 
     // Request Snap Token
     const snapParam = {
@@ -99,11 +102,16 @@ export class BillingService {
       ],
     };
 
-    const transaction = await this.midtrans.createSnapToken(snapParam);
-    return {
-      token: transaction.token,
-      redirect_url: transaction.redirect_url,
-    };
+    try {
+      const transaction = await this.midtrans.createSnapToken(snapParam);
+      return {
+        token: transaction.token,
+        redirect_url: transaction.redirect_url,
+      };
+    } catch (error) {
+      this.logger.error(`[Checkout] Failed to create Snap token for order ${orderId}:`, error);
+      throw error;
+    }
   }
 
   private async activateFreePlan(userId: string) {
@@ -139,7 +147,7 @@ export class BillingService {
     );
 
     if (!isValid) {
-      this.logger.warn(`Invalid signature for order ${order_id}`);
+      this.logger.warn(`[Webhook] Invalid signature for order ${order_id}`);
       return false;
     }
 
@@ -149,72 +157,89 @@ export class BillingService {
     });
 
     if (!invoice) {
-      this.logger.warn(`Invoice not found for order ${order_id}`);
+      this.logger.warn(`[Webhook] Invoice not found for order ${order_id}`);
       return false;
     }
 
-    if (
-      transaction_status === 'settlement' ||
-      transaction_status === 'capture'
-    ) {
-      // Payment Success!
-      // Parse amount back to deduce plan if not fully reliable from DB, but DB holds sub
-      await this.prisma.$transaction(async (tx: any) => {
-        // Update Invoice
-        await tx.invoice.update({
-          where: { id: invoice.id },
-          data: { status: 'paid', paidAt: new Date() },
-        });
-
-        // Determine next period
-        // For simplicity, find plan from amount or from the updated snap token..
-        // Fortunately we know the billing cycle from subscription
-        const addDays = invoice.subscription.billingCycle === 'annual' ? 365 : 30;
-        const newPeriodEnd = new Date();
-        newPeriodEnd.setDate(newPeriodEnd.getDate() + addDays);
-
-        // Find what plan to apply based on gross_amount
-        const amountNum = parseFloat(gross_amount);
-        let updatedPlan = invoice.subscription.plan;
-        
-        for (const p of PLANS) {
-          if (p.price_monthly === amountNum) {
-            updatedPlan = p.id;
-            break;
-          } else if (p.price_annual === amountNum) {
-            updatedPlan = p.id;
-            break;
-          }
-        }
-
-        // Update Subscription
-        await tx.subscription.update({
-          where: { id: invoice.subscriptionId },
-          data: {
-            plan: updatedPlan,
-            status: 'active',
-            currentPeriodStart: new Date(),
-            currentPeriodEnd: newPeriodEnd,
-            cancelAtPeriodEnd: false, // reset cancel
-          },
-        });
-
-        // Update User Profile
-        await tx.user.update({
-          where: { id: invoice.userId },
-          data: { plan: updatedPlan },
-        });
-      });
-
-      this.logger.log(`Order ${order_id} settled applied to user ${invoice.userId}`);
-    } else if (transaction_status === 'cancel' || transaction_status === 'expire' || transaction_status === 'deny') {
-      await this.prisma.invoice.update({
-        where: { id: invoice.id },
-        data: { status: 'failed' },
-      });
+    // Idempotency check: if already processed, skip
+    if (invoice.status === 'paid' && (transaction_status === 'settlement' || transaction_status === 'capture')) {
+      this.logger.log(`[Webhook] Order ${order_id} already processed (idempotent)`);
+      return true;
     }
 
-    return true;
+    if (invoice.status === 'failed' && ['cancel', 'expire', 'deny'].includes(transaction_status)) {
+      this.logger.log(`[Webhook] Order ${order_id} already marked as failed (idempotent)`);
+      return true;
+    }
+
+    try {
+      if (
+        transaction_status === 'settlement' ||
+        transaction_status === 'capture'
+      ) {
+        // Payment Success!
+        await this.prisma.$transaction(async (tx: any) => {
+          // Update Invoice
+          await tx.invoice.update({
+            where: { id: invoice.id },
+            data: { status: 'paid', paidAt: new Date() },
+          });
+
+          // Determine next period
+          const addDays = invoice.subscription.billingCycle === 'annual' ? 365 : 30;
+          const newPeriodEnd = new Date();
+          newPeriodEnd.setDate(newPeriodEnd.getDate() + addDays);
+
+          // Find what plan to apply based on gross_amount
+          const amountNum = parseFloat(gross_amount);
+          let updatedPlan = invoice.subscription.plan;
+          
+          for (const p of PLANS) {
+            if (p.price_monthly === amountNum) {
+              updatedPlan = p.id;
+              break;
+            } else if (p.price_annual === amountNum) {
+              updatedPlan = p.id;
+              break;
+            }
+          }
+
+          // Update Subscription
+          await tx.subscription.update({
+            where: { id: invoice.subscriptionId },
+            data: {
+              plan: updatedPlan,
+              status: 'active',
+              currentPeriodStart: new Date(),
+              currentPeriodEnd: newPeriodEnd,
+              cancelAtPeriodEnd: false, // reset cancel
+            },
+          });
+
+          // Update User Profile
+          await tx.user.update({
+            where: { id: invoice.userId },
+            data: { plan: updatedPlan },
+          });
+        });
+
+        this.logger.log(`[Webhook] ✅ Order ${order_id} settled → user ${invoice.userId} upgraded to ${invoice.subscription.plan}`);
+      } else if (transaction_status === 'cancel' || transaction_status === 'expire' || transaction_status === 'deny') {
+        await this.prisma.invoice.update({
+          where: { id: invoice.id },
+          data: { status: 'failed' },
+        });
+        this.logger.log(`[Webhook] ❌ Order ${order_id} failed with status: ${transaction_status}`);
+      } else if (transaction_status === 'pending') {
+        this.logger.log(`[Webhook] ⏳ Order ${order_id} still pending`);
+      }
+
+      return true;
+    } catch (error) {
+      this.logger.error(`[Webhook] Error processing order ${order_id}:`, error);
+      // Return false so Midtrans retries
+      return false;
+    }
   }
 
   async cancelSubscription(userId: string) {
