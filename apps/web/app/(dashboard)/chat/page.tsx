@@ -11,6 +11,8 @@ import {
   Loader2,
   Sparkles,
   AlertCircle,
+  ChevronDown,
+  Cpu,
 } from 'lucide-react';
 
 interface Message {
@@ -18,6 +20,15 @@ interface Message {
   role: 'user' | 'assistant';
   content: string;
   timestamp: Date;
+  model?: string;
+  provider?: string;
+}
+
+interface AiModel {
+  id: string;
+  name: string;
+  provider: string;
+  plans: string[];
 }
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001/api/v1';
@@ -30,11 +41,26 @@ export default function ChatPage() {
   const [isInitializing, setIsInitializing] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [conversationId, setConversationId] = useState<string | null>(null);
+  const [models, setModels] = useState<AiModel[]>([]);
+  const [selectedModel, setSelectedModel] = useState<string>('');
+  const [showModelPicker, setShowModelPicker] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
-  /** Fetch latest conversation on mount */
+  /** Fetch available models + latest conversation on mount */
   useEffect(() => {
+    // Load available AI models
+    fetch(`${API_URL}/chat/models`, { credentials: 'include' })
+      .then((r) => r.ok ? r.json() : null)
+      .then((d) => {
+        const list = d?.data || [];
+        setModels(list);
+        if (list.length > 0 && !selectedModel) {
+          setSelectedModel(list[0].id);
+        }
+      })
+      .catch(() => {});
+
     async function loadLatestConversation() {
       try {
         const resList = await fetch(`${API_URL}/chat/conversations`, {
@@ -43,10 +69,12 @@ export default function ChatPage() {
         if (!resList.ok) throw new Error('Failed to load history');
         
         const listData = await resList.json();
-        const latestConvo = listData.data?.[0]; // Assuming it is sorted by desc
+        const latestConvo = listData.data?.[0];
         
         if (latestConvo) {
           setConversationId(latestConvo.id);
+          // Restore model from conversation if available
+          if (latestConvo.model) setSelectedModel(latestConvo.model);
           const resDetail = await fetch(`${API_URL}/chat/conversations/${latestConvo.id}`, {
             credentials: 'include',
           });
@@ -57,7 +85,9 @@ export default function ChatPage() {
                 id: m.id,
                 role: m.role,
                 content: m.content,
-                timestamp: new Date(m.createdAt)
+                timestamp: new Date(m.createdAt),
+                model: m.model,
+                provider: m.provider,
               }))
             );
           }
@@ -100,11 +130,43 @@ export default function ChatPage() {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ message: text, conversationId }),
+        body: JSON.stringify({ message: text, conversationId, model: selectedModel || undefined }),
       });
 
       if (!res.ok) {
         const errBody = await res.json().catch(() => ({}));
+
+        // Handle stale conversationId → retry as new conversation
+        if (res.status === 404 && conversationId) {
+          setConversationId(null);
+          const retryRes = await fetch(`${API_URL}/chat`, {
+            method: 'POST',
+            credentials: 'include',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ message: text }),
+          });
+          if (retryRes.ok) {
+            const retryData = await retryRes.json();
+            if (retryData.data?.conversationId) {
+              setConversationId(retryData.data.conversationId);
+            }
+            const botMsg: Message = {
+              id: crypto.randomUUID(),
+              role: 'assistant',
+              content: retryData.data?.reply ?? 'Maaf, saya tidak dapat memproses permintaan Anda.',
+              timestamp: new Date(),
+            };
+            setMessages((prev) => [...prev, botMsg]);
+            return;
+          }
+        }
+
+        // Handle plan/usage limit errors with friendly message
+        if (res.status === 403) {
+          const msg = errBody.message || errBody.error?.message || 'Akses ditolak.';
+          throw new Error(msg);
+        }
+
         const errMsg = errBody.message || errBody.error?.message || `Error ${res.status}`;
         throw new Error(errMsg);
       }
@@ -171,12 +233,46 @@ export default function ChatPage() {
             </p>
           </div>
         </div>
-        <button
-          onClick={handleNewChat}
-          className="text-xs px-3 py-1.5 rounded-lg border border-border bg-card hover:bg-muted font-medium transition-colors"
-        >
-          + Chat Baru
-        </button>
+        <div className="flex items-center gap-2">
+          {/* Model selector */}
+          {models.length > 1 && (
+            <div className="relative">
+              <button
+                onClick={() => setShowModelPicker(!showModelPicker)}
+                className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg border border-border bg-card hover:bg-muted font-medium transition-colors"
+              >
+                <Cpu className="w-3 h-3" />
+                {models.find((m) => m.id === selectedModel)?.name || 'Model'}
+                <ChevronDown className={`w-3 h-3 transition-transform ${showModelPicker ? 'rotate-180' : ''}`} />
+              </button>
+              {showModelPicker && (
+                <>
+                  <div className="fixed inset-0 z-40" onClick={() => setShowModelPicker(false)} />
+                  <div className="absolute right-0 top-full mt-1 z-50 w-56 bg-card border border-border rounded-xl shadow-lg overflow-hidden">
+                    {models.map((m) => (
+                      <button
+                        key={m.id}
+                        onClick={() => { setSelectedModel(m.id); setShowModelPicker(false); }}
+                        className={`w-full text-left px-3 py-2 text-xs hover:bg-muted/50 transition-colors flex items-center justify-between ${
+                          selectedModel === m.id ? 'bg-primary/5 text-primary font-semibold' : ''
+                        }`}
+                      >
+                        <span>{m.name}</span>
+                        <span className="text-[10px] text-muted-foreground capitalize">{m.provider}</span>
+                      </button>
+                    ))}
+                  </div>
+                </>
+              )}
+            </div>
+          )}
+          <button
+            onClick={handleNewChat}
+            className="text-xs px-3 py-1.5 rounded-lg border border-border bg-card hover:bg-muted font-medium transition-colors"
+          >
+            + Chat Baru
+          </button>
+        </div>
       </div>
 
       {/* Messages area */}

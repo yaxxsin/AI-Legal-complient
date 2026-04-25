@@ -134,24 +134,29 @@ async function main(): Promise<void> {
   );
   console.log(`✅ ${subSectors.length} sub-sectors seeded`);
 
-  // Default feature flags
-  const flags = await Promise.all([
-    prisma.featureFlag.upsert({
-      where: { key: 'compliance_bot' },
-      update: {},
-      create: { key: 'compliance_bot', enabled: true, targetPlans: ['free', 'starter', 'growth', 'business'] },
-    }),
-    prisma.featureFlag.upsert({
-      where: { key: 'document_generator' },
-      update: {},
-      create: { key: 'document_generator', enabled: true, targetPlans: ['free', 'starter', 'growth', 'business'] },
-    }),
-    prisma.featureFlag.upsert({
-      where: { key: 'document_review_ai' },
-      update: {},
-      create: { key: 'document_review_ai', enabled: false, targetPlans: ['growth', 'business'] },
-    }),
-  ]);
+  // Default feature flags — keys MUST match @RequireFeature() decorators on controllers
+  const flagData = [
+    { key: 'menu-dashboard', enabled: true, targetPlans: [] },
+    { key: 'menu-chat', enabled: true, targetPlans: [] },
+    { key: 'menu-checklist', enabled: true, targetPlans: [] },
+    { key: 'menu-documents', enabled: true, targetPlans: [] },
+    { key: 'menu-doc-review', enabled: true, targetPlans: ['growth', 'business'] },
+    { key: 'menu-hr', enabled: true, targetPlans: [] },
+    { key: 'menu-notifications', enabled: true, targetPlans: [] },
+    { key: 'menu-knowledge', enabled: true, targetPlans: [] },
+    { key: 'menu-billing', enabled: true, targetPlans: [] },
+    { key: 'menu-settings', enabled: true, targetPlans: [] },
+  ];
+
+  const flags = await Promise.all(
+    flagData.map((f) =>
+      prisma.featureFlag.upsert({
+        where: { key: f.key },
+        update: { enabled: f.enabled },
+        create: { key: f.key, enabled: f.enabled, targetPlans: f.targetPlans },
+      }),
+    ),
+  );
   console.log(`✅ ${flags.length} feature flags seeded`);
 
   console.log('🎉 Seed completed!');

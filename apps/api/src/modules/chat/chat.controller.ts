@@ -10,6 +10,7 @@ import { UsageLimitService } from '../billing/usage-limits.service';
 interface ChatRequestDto {
   message: string;
   conversationId?: string;
+  model?: string; // e.g. 'gemini-2.0-flash', 'llama3.2:1b'
 }
 
 @ApiTags('Chat')
@@ -23,6 +24,15 @@ export class ChatController {
     private readonly chatService: ChatService,
     private readonly usageLimits: UsageLimitService,
   ) {}
+
+  @Get('models')
+  @ApiOperation({ summary: 'Get available AI models for current user plan' })
+  async getModels(@Req() req: { user: { plan: string } }) {
+    return {
+      success: true,
+      data: this.chatService.getAvailableModels(req.user.plan),
+    };
+  }
 
   @Get('conversations')
   @ApiOperation({ summary: 'Get user conversation history' })
@@ -50,7 +60,13 @@ export class ChatController {
     // Enforce chat limit per plan
     await this.usageLimits.checkChatLimit(req.user.id, req.user.plan);
 
-    const result = await this.chatService.chat(dto.message, req.user.id, dto.conversationId);
+    const result = await this.chatService.chat(
+      dto.message,
+      req.user.id,
+      req.user.plan,
+      dto.conversationId,
+      dto.model,
+    );
     return { success: true, data: result };
   }
 }

@@ -2,22 +2,18 @@ import { Injectable, Logger, InternalServerErrorException, NotFoundException } f
 import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../../database/prisma.service';
 import { PasalService } from './pasal.service';
+import { AiProviderFactory, ChatMessage } from './ai-providers';
 
 @Injectable()
 export class ChatService {
   private readonly logger = new Logger(ChatService.name);
-  private readonly ollamaUrl: string;
-  private readonly model: string;
 
   constructor(
     private readonly config: ConfigService,
     private readonly prisma: PrismaService,
     private readonly pasalService: PasalService,
-  ) {
-    this.ollamaUrl = this.config.get<string>('OLLAMA_BASE_URL') ?? 'http://localhost:11434';
-    this.model = this.config.get<string>('OLLAMA_MODEL') ?? 'llama3.2:1b';
-    this.logger.log(`Ollama config: ${this.ollamaUrl} / model: ${this.model}`);
-  }
+    private readonly aiFactory: AiProviderFactory,
+  ) {}
 
   async listConversations(userId: string) {
     return this.prisma.conversation.findMany({
@@ -26,20 +22,18 @@ export class ChatService {
       select: {
         id: true,
         title: true,
+        model: true,
+        provider: true,
         updatedAt: true,
-        _count: { select: { messages: true } }
-      }
+        _count: { select: { messages: true } },
+      },
     });
   }
 
   async getConversation(id: string, userId: string) {
     const convo = await this.prisma.conversation.findUnique({
       where: { id },
-      include: {
-        messages: {
-          orderBy: { createdAt: 'asc' }
-        }
-      }
+      include: { messages: { orderBy: { createdAt: 'asc' } } },
     });
     if (!convo || convo.userId !== userId) {
       throw new NotFoundException('Conversation not found');
@@ -47,8 +41,18 @@ export class ChatService {
     return convo;
   }
 
-  /** Send a message to Ollama with regulation context and conversation history */
-  async chat(message: string, userId: string, conversationId?: string) {
+  /** Send a message using the selected AI model */
+  async chat(
+    message: string,
+    userId: string,
+    userPlan: string,
+    conversationId?: string,
+    modelId?: string,
+  ) {
+    // Resolve model + provider
+    const resolvedModelId = modelId ?? this.aiFactory.getDefaultModel(userPlan);
+    const { provider, model: modelDef } = this.aiFactory.getProviderForModel(resolvedModelId, userPlan);
+
     let convoId = conversationId;
 
     if (!convoId) {
@@ -56,7 +60,9 @@ export class ChatService {
         data: {
           userId,
           title: message.substring(0, 50) + (message.length > 50 ? '...' : ''),
-        }
+          model: modelDef.id,
+          provider: modelDef.provider,
+        },
       });
       convoId = newConvo.id;
     } else {
@@ -66,13 +72,13 @@ export class ChatService {
       }
       await this.prisma.conversation.update({
         where: { id: convoId },
-        data: { updatedAt: new Date() }
+        data: { updatedAt: new Date(), model: modelDef.id, provider: modelDef.provider },
       });
     }
 
     // Save user message
     await this.prisma.message.create({
-      data: { conversationId: convoId, role: 'user', content: message }
+      data: { conversationId: convoId, role: 'user', content: message },
     });
 
     // Retrieve conversation history
@@ -82,151 +88,115 @@ export class ChatService {
       take: 10,
     });
 
-    // RAG-lite: retrieve relevant context from DB + Pasal.id
+    // RAG-lite: retrieve relevant context
     const [dbContext, pasalContext] = await Promise.all([
       this.retrieveContext(message),
       this.pasalService.searchForContext(message),
     ]);
     const systemPrompt = this.buildSystemPrompt(dbContext + pasalContext);
 
-    const url = `${this.ollamaUrl}/api/chat`;
-    const chatMessages = [
+    // Build messages array
+    const chatMessages: ChatMessage[] = [
       { role: 'system', content: systemPrompt },
-      ...history.map(msg => ({ role: msg.role, content: msg.content }))
+      ...history.map((msg) => ({
+        role: msg.role as 'user' | 'assistant',
+        content: msg.content,
+      })),
     ];
 
-    const payload = {
-      model: this.model,
-      messages: chatMessages,
-      stream: false,
-      options: { temperature: 0.7, num_predict: 1024 },
-    };
-
-    this.logger.debug(`Chat request to ${url} with model ${this.model}`);
+    this.logger.log(`[Chat] User ${userId} → ${modelDef.provider}/${modelDef.id}`);
 
     try {
-      const response = await fetch(url, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-      });
+      const aiResponse = await provider.chat(chatMessages, { model: modelDef.id });
 
-      if (!response.ok) {
-        const errorText = await response.text();
-        this.logger.error(`Ollama HTTP ${response.status}: ${errorText}`);
+      const reply = aiResponse.content || 'Maaf, saya tidak dapat memproses permintaan Anda saat ini.';
 
-        if (response.status === 404 && errorText.includes('not found')) {
-          const errorMsg = `Maaf, model AI '${this.model}' tidak ditemukan di Ollama lokal Anda. Silakan buka terminal dan jalankan perintah: \`ollama pull ${this.model}\``;
-          await this.prisma.message.create({
-            data: { conversationId: convoId, role: 'assistant', content: errorMsg }
-          });
-          return { conversationId: convoId, reply: errorMsg };
-        }
-
-        throw new InternalServerErrorException(`AI service error: ${response.status}`);
-      }
-
-      const data = await response.json();
-      const reply = data.message?.content;
-
-      if (!reply) {
-        this.logger.warn('Ollama returned empty reply');
-        const emptyMsg = 'Maaf, saya tidak dapat memproses permintaan Anda saat ini.';
-        await this.prisma.message.create({
-          data: { conversationId: convoId!, role: 'assistant', content: emptyMsg }
-        });
-        return { conversationId: convoId, reply: emptyMsg };
-      }
-
-      // Save assistant reply
+      // Save assistant reply with model info
       await this.prisma.message.create({
-        data: { conversationId: convoId!, role: 'assistant', content: reply }
+        data: {
+          conversationId: convoId!,
+          role: 'assistant',
+          content: reply,
+          model: aiResponse.model,
+          provider: aiResponse.provider,
+          tokensUsed: aiResponse.tokensUsed,
+        },
       });
 
-      return { conversationId: convoId, reply };
+      return {
+        conversationId: convoId,
+        reply,
+        model: aiResponse.model,
+        provider: aiResponse.provider,
+      };
     } catch (error) {
-      if (error instanceof InternalServerErrorException) throw error;
-      this.logger.error(`Chat failed: ${(error as Error).message}`);
-      throw new InternalServerErrorException('Gagal menghubungi AI. Pastikan Ollama berjalan.');
+      this.logger.error(`[Chat] Failed (${modelDef.provider}/${modelDef.id}): ${(error as Error).message}`);
+
+      // Save error message
+      const errorMsg = 'Maaf, terjadi kesalahan saat menghubungi AI. Silakan coba lagi.';
+      await this.prisma.message.create({
+        data: { conversationId: convoId!, role: 'assistant', content: errorMsg },
+      });
+
+      throw new InternalServerErrorException('Gagal menghubungi AI. Coba lagi atau pilih model lain.');
     }
+  }
+
+  /** Get available models for a user's plan */
+  getAvailableModels(plan: string) {
+    return this.aiFactory.getAvailableModels(plan);
   }
 
   /** Generates direct message without ComplianceBot prompt (used by OCR/BullMQ) */
   async generateDirectMessage(prompt: string): Promise<string> {
-    const url = `${this.ollamaUrl}/api/chat`;
-    const payload = {
-      model: this.model,
-      messages: [{ role: 'user', content: prompt }],
-      stream: false,
-      options: { temperature: 0.1, num_predict: 2048 },
-    };
+    // Always use Ollama for internal/background tasks
+    const ollama = this.aiFactory.getProvider('ollama');
 
     try {
-      const response = await fetch(url, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-      });
-
-      if (!response.ok) {
-        throw new InternalServerErrorException(`AI service error: ${response.status}`);
-      }
-
-      const data = await response.json();
-      return data.message?.content || '{}';
+      const response = await ollama.chat(
+        [{ role: 'user', content: prompt }],
+        { temperature: 0.1, maxTokens: 2048 },
+      );
+      return response.content || '{}';
     } catch (error) {
       this.logger.error(`Direct chat failed: ${(error as Error).message}`);
       throw new InternalServerErrorException('Gagal menghubungi AI.');
     }
   }
 
-  /**
-   * RAG-lite: Retrieve relevant regulations & compliance rules
-   * based on keyword matching from the user's question.
-   */
+  // ── RAG Context ──────────────────────────
+
   private async retrieveContext(question: string): Promise<string> {
     const keywords = this.extractKeywords(question);
     if (keywords.length === 0) return '';
 
-    const searchConditions = keywords.map(k => ({
+    const searchConditions = keywords.map((k) => ({
       OR: [
         { title: { contains: k, mode: 'insensitive' as const } },
         { contentRaw: { contains: k, mode: 'insensitive' as const } },
       ],
     }));
 
-    // Query regulations
     const regulations = await this.prisma.regulation.findMany({
-      where: { OR: searchConditions.flatMap(c => c.OR) },
-      select: {
-        title: true,
-        regulationNumber: true,
-        type: true,
-        issuedBy: true,
-        status: true,
-        sourceUrl: true,
-      },
+      where: { OR: searchConditions.flatMap((c) => c.OR) },
+      select: { title: true, regulationNumber: true, type: true, issuedBy: true, status: true, sourceUrl: true },
       take: 5,
       orderBy: { issuedDate: 'desc' },
     });
 
-    // Query compliance rules
     const rules = await this.prisma.complianceRule.findMany({
       where: {
         isPublished: true,
-        OR: keywords.map(k => ({
-          OR: [
-            { title: { contains: k, mode: 'insensitive' as const } },
-            { description: { contains: k, mode: 'insensitive' as const } },
-          ],
-        })).flatMap(c => c.OR),
+        OR: keywords
+          .map((k) => ({
+            OR: [
+              { title: { contains: k, mode: 'insensitive' as const } },
+              { description: { contains: k, mode: 'insensitive' as const } },
+            ],
+          }))
+          .flatMap((c) => c.OR),
       },
-      select: {
-        title: true,
-        description: true,
-        priority: true,
-        legalReferences: true,
-      },
+      select: { title: true, description: true, priority: true, legalReferences: true },
       take: 5,
     });
 
@@ -235,21 +205,21 @@ export class ChatService {
     let context = '\n\n--- DATA REFERENSI DARI DATABASE ---\n';
 
     if (regulations.length > 0) {
-      context += '\n📜 REGULASI TERKAIT:\n';
+      context += '\nREGULASI TERKAIT:\n';
       for (const r of regulations) {
-        context += `- ${r.type} ${r.regulationNumber}: "${r.title}" (Diterbitkan oleh: ${r.issuedBy}, Status: ${r.status})`;
-        if (r.sourceUrl) context += ` [Sumber: ${r.sourceUrl}]`;
+        context += `- ${r.type} ${r.regulationNumber}: "${r.title}" (${r.issuedBy}, ${r.status})`;
+        if (r.sourceUrl) context += ` [${r.sourceUrl}]`;
         context += '\n';
       }
     }
 
     if (rules.length > 0) {
-      context += '\n✅ KEWAJIBAN KEPATUHAN:\n';
+      context += '\nKEWAJIBAN KEPATUHAN:\n';
       for (const r of rules) {
         const refs = Array.isArray(r.legalReferences) ? (r.legalReferences as string[]).join(', ') : '';
         context += `- ${r.title}: ${r.description.substring(0, 150)}`;
-        if (refs) context += ` (Dasar hukum: ${refs})`;
-        context += ` [Prioritas: ${r.priority}]\n`;
+        if (refs) context += ` (${refs})`;
+        context += ` [${r.priority}]\n`;
       }
     }
 
@@ -257,7 +227,6 @@ export class ChatService {
     return context;
   }
 
-  /** Extract meaningful keywords from user question */
   private extractKeywords(question: string): string[] {
     const stopWords = new Set([
       'apa', 'adalah', 'yang', 'dan', 'atau', 'di', 'ke', 'dari',
@@ -271,11 +240,10 @@ export class ChatService {
       .toLowerCase()
       .replace(/[^a-zA-Z0-9\s]/g, '')
       .split(/\s+/)
-      .filter(w => w.length > 2 && !stopWords.has(w))
-      .slice(0, 5); // Max 5 keywords
+      .filter((w) => w.length > 2 && !stopWords.has(w))
+      .slice(0, 5);
   }
 
-  /** System prompt with injected regulation context */
   private buildSystemPrompt(context: string = ''): string {
     const base = [
       'Kamu adalah ComplianceBot — asisten AI untuk kepatuhan hukum bisnis di Indonesia.',
@@ -285,21 +253,11 @@ export class ChatService {
       '',
       'ATURAN PENTING:',
       '1. Jika ada DATA REFERENSI di bawah, SELALU gunakan data tersebut sebagai dasar jawaban.',
-      '2. SELALU cantumkan sumber/dasar hukum di akhir jawaban dalam format:',
-      '   📎 Sumber: [nama regulasi, nomor, URL lengkap]',
-      '3. SELALU tulis URL lengkap dengan https:// — contoh: https://oss.go.id BUKAN hanya "oss.go.id".',
-      '4. Jika data referensi tidak tersedia, jawab berdasarkan pengetahuan umum dan tambahkan:',
-      '   ⚠️ Informasi ini bersifat umum. Silakan verifikasi di https://jdih.go.id atau konsultasi ahli hukum.',
+      '2. SELALU cantumkan sumber/dasar hukum di akhir jawaban.',
+      '3. SELALU tulis URL lengkap dengan https://.',
+      '4. Jika data referensi tidak tersedia, jawab berdasarkan pengetahuan umum dan tambahkan disclaimer.',
       '5. Jangan memberikan nasihat hukum resmi — hanya informasi umum berbasis data.',
-      '6. Di AKHIR setiap jawaban, SELALU tambahkan blok "🔗 Portal Resmi" berikut (pilih yang relevan):',
-      '   🔗 Portal Resmi:',
-      '   - OSS (Perizinan Berusaha): https://oss.go.id',
-      '   - JDIH (Database Hukum): https://jdih.go.id',
-      '   - Peraturan: https://peraturan.go.id',
-      '   - DJP (Pajak): https://pajak.go.id',
-      '   - BPJS Ketenagakerjaan: https://www.bpjsketenagakerjaan.go.id',
-      '   - BPJS Kesehatan: https://bpjs-kesehatan.go.id',
-      '   Pilih HANYA portal yang relevan dengan pertanyaan user (2-4 link saja, jangan semua).',
+      '6. Di AKHIR setiap jawaban, tambahkan portal resmi yang relevan (2-4 link).',
     ].join('\n');
 
     return context ? `${base}\n${context}` : base;

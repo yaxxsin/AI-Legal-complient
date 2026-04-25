@@ -235,6 +235,8 @@ model Conversation {
   userId            String   @map("user_id") @db.Uuid
   businessProfileId String?  @map("business_profile_id") @db.Uuid
   title             String?  @db.VarChar(100)
+  model             String?  @db.VarChar(50)
+  provider          String?  @db.VarChar(20)
   createdAt         DateTime @default(now()) @map("created_at")
   updatedAt         DateTime @default(now()) @updatedAt @map("updated_at")
 
@@ -250,6 +252,8 @@ model Message {
   conversationId  String   @map("conversation_id") @db.Uuid
   role            String   @db.VarChar(20)
   content         String   @db.Text
+  model           String?  @db.VarChar(50)
+  provider        String?  @db.VarChar(20)
   sources         Json?
   feedback        String?  @db.VarChar(10)
   feedbackComment String?  @map("feedback_comment") @db.Text

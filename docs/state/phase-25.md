@@ -30,6 +30,6 @@ Plan-based access:
   - Growth: + Claude Haiku, GPT-4o-mini
   - Business: All models termasuk Claude Sonnet, GPT-4o
 
-## NOW: -
+## NOW: Step 1/10 — Install Gemini SDK
 ## NEXT: -
 ## CRUMBS: -
