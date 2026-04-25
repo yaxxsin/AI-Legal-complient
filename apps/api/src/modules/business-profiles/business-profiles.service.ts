@@ -245,6 +245,53 @@ export class BusinessProfilesService {
     }
   }
 
+  /** Try to extract structured data using regex patterns (fast, no AI) */
+  private tryRegexExtraction(text: string): Record<string, string> {
+    const result: Record<string, string> = {
+      businessName: '',
+      npwp: '',
+      nibNumber: '',
+      entityType: '',
+      city: '',
+      province: '',
+    };
+
+    // NIB: 13-digit number, often preceded by "NIB" or "Nomor Induk Berusaha"
+    const nibMatch = text.match(/(?:NIB|Nomor Induk Berusaha)[:\s]*(\d{13})/i)
+      || text.match(/\b(\d{13})\b/); // fallback: any 13-digit number
+    if (nibMatch) result.nibNumber = nibMatch[1];
+
+    // NPWP: 15 or 16 digits, with or without dots/dashes
+    const npwpMatch = text.match(/(?:NPWP)[:\s]*([\d.\-]{15,25})/i)
+      || text.match(/(\d{2}[.\-]?\d{3}[.\-]?\d{3}[.\-]?\d[.\-]?\d{3}[.\-]?\d{3})/);
+    if (npwpMatch) result.npwp = npwpMatch[1].replace(/[.\-\s]/g, '');
+
+    // Entity type detection
+    const upperText = text.toUpperCase();
+    if (upperText.includes('PERSEROAN TERBATAS') || /\bPT\b/.test(upperText)) {
+      result.entityType = 'PT';
+    } else if (upperText.includes('COMMANDITAIRE') || /\bCV\b/.test(upperText)) {
+      result.entityType = 'CV';
+    } else if (upperText.includes('FIRMA')) {
+      result.entityType = 'Firma';
+    } else if (upperText.includes('YAYASAN')) {
+      result.entityType = 'Yayasan';
+    } else if (upperText.includes('KOPERASI')) {
+      result.entityType = 'Koperasi';
+    } else if (upperText.includes('PERORANGAN') || upperText.includes('USAHA DAGANG') || /\bUD\b/.test(upperText)) {
+      result.entityType = 'Perorangan';
+    }
+
+    // Business name: look for "Nama Perusahaan", "Nama Usaha", or after PT/CV
+    const nameMatch = text.match(/(?:Nama (?:Perusahaan|Usaha|Badan Usaha))[:\s]*([^\n]{3,80})/i)
+      || text.match(/(?:PT|CV|UD|Firma|Yayasan|Koperasi)\.?\s+([A-Z][A-Za-z\s&.]{2,60})/);
+    if (nameMatch) {
+      result.businessName = nameMatch[1].trim().replace(/\s+/g, ' ');
+    }
+
+    return result;
+  }
+
   /**
    * Auto-scan document for Onboarding (KTP/NPWP/NIB)
    * Uses pdf-parse or Tesseract.js, then Ollama to extract JSON fields.
@@ -256,58 +303,96 @@ export class BusinessProfilesService {
     // 1. Text Extraction
     try {
       if (ext === 'pdf') {
-        const parsed = await pdfParse(file.buffer);
-        extractedText = parsed.text;
+        // Try text-layer extraction first
+        try {
+          const parsed = await pdfParse(file.buffer);
+          extractedText = parsed.text?.trim() || '';
+        } catch {
+          this.logger.warn('pdf-parse failed, PDF may be scanned/image-based');
+        }
+
+        // If PDF has no text layer (scanned document), fall back to OCR
+        if (!extractedText) {
+          this.logger.log('PDF has no text layer, attempting OCR via Tesseract...');
+          try {
+            const tesseractResult = await Tesseract.recognize(file.buffer, 'ind', {
+              logger: (m: any) => this.logger.debug(`Tesseract: ${m.status} - ${m.progress}`),
+            });
+            extractedText = tesseractResult.data.text;
+          } catch {
+            this.logger.warn('Tesseract OCR on PDF also failed');
+          }
+        }
       } else if (['jpg', 'jpeg', 'png', 'webp'].includes(ext || '')) {
         const tesseractResult = await Tesseract.recognize(file.buffer, 'ind', {
-          logger: (m) => this.logger.debug(`Tesseract: ${m.status} - ${m.progress}`),
+          logger: (m: any) => this.logger.debug(`Tesseract: ${m.status} - ${m.progress}`),
         });
         extractedText = tesseractResult.data.text;
       } else {
         throw new BadRequestException('Format file tidak didukung untuk OCR (Hanya PDF/Image)');
       }
     } catch (e) {
+      if (e instanceof BadRequestException) throw e;
       this.logger.error(`OCR Extraction failed: ${(e as Error).message}`);
       throw new BadRequestException('Gagal membaca isi dokumen. Pastikan file jelas dan tidak diproteksi password.');
     }
 
     if (!extractedText.trim()) {
-      throw new BadRequestException('Tidak ada teks yang dapat ditemukan di dokumen tersebut.');
+      throw new BadRequestException('Tidak ada teks yang dapat ditemukan di dokumen. Pastikan dokumen berisi teks yang jelas atau coba upload gambar (JPG/PNG) dari dokumen.');
     }
 
-    // Trim text to prevent token overflow (approx limit 3000 chars for local fast extraction)
-    const truncatedText = extractedText.substring(0, 3000);
+    // Clean extracted text: collapse whitespace, remove noise
+    const cleanedText = extractedText
+      .replace(/\r\n/g, '\n')
+      .replace(/[ \t]+/g, ' ')           // collapse horizontal whitespace
+      .replace(/\n{3,}/g, '\n\n')         // max 2 consecutive newlines
+      .replace(/^[ \t]+$/gm, '')          // remove blank-ish lines
+      .trim();
 
-    // 2. AI Extraction via Ollama
-    const prompt = `Anda adalah sistem data extraction otomatis OCR.
-Ekstrak informasi berikut dari teks acak NIB / NPWP / KTP berikut ini.
-Keluarkan HANYA dalam bentuk format JSON persis seperti di bawah ini tanpa markdown, tanpa teks tambahan apapun.
-Jika ada field yang tidak ditemukan, beri tanda string kosong "".
-{
-  "businessName": "Nama Perusahaan (misal PT XYZ / Johan)",
-  "npwp": "Nomor NPWP 15/16 digit",
-  "nibNumber": "Nomor NIB (biasanya 13 digit angka)",
-  "entityType": "Pilih salah satu sesuai jenis badan hukum (PT/CV/Firma/Yayasan/Perorangan/Lainnya)",
-  "city": "Kota/Kabupaten alamat",
-  "province": "Provinsi alamat"
-}
+    this.logger.log(`[OCR] Extracted ${cleanedText.length} chars from ${ext} file`);
 
-TEKS DOKUMEN:
----
-${truncatedText}
----`;
+    // Smart truncation: keep first 5000 chars (enough for most NIB/NPWP docs)
+    const truncatedText = cleanedText.substring(0, 5000);
+
+    // 2. Try regex extraction first (fast, no AI needed for standard formats)
+    const regexResult = this.tryRegexExtraction(truncatedText);
+
+    // 3. AI Extraction via Ollama (for fields regex couldn't find)
+    const prompt = `Ekstrak data dari dokumen NIB/NPWP/KTP berikut. Output HANYA JSON, tanpa markdown atau teks lain.
+Jika field tidak ditemukan, isi string kosong "".
+
+{"businessName":"","npwp":"","nibNumber":"","entityType":"PT/CV/Firma/Yayasan/Perorangan/Lainnya","city":"","province":""}
+
+Teks:
+${truncatedText}`;
 
     try {
       const aiResponse = await this.chatService.generateDirectMessage(prompt);
-      const jsonMatch = aiResponse.match(/\{[\s\S]*\}/);
+      const jsonMatch = aiResponse.match(/\{[\s\S]*?\}/);
+      let aiResult: Record<string, string> = {};
       if (jsonMatch) {
-         return JSON.parse(jsonMatch[0]);
+        aiResult = JSON.parse(jsonMatch[0]);
       } else {
-         return JSON.parse(aiResponse);
+        aiResult = JSON.parse(aiResponse);
       }
+
+      // Merge: regex results take priority (more reliable), AI fills gaps
+      return {
+        businessName: regexResult.businessName || aiResult.businessName || '',
+        npwp: regexResult.npwp || aiResult.npwp || '',
+        nibNumber: regexResult.nibNumber || aiResult.nibNumber || '',
+        entityType: regexResult.entityType || aiResult.entityType || '',
+        city: aiResult.city || '',
+        province: aiResult.province || '',
+      };
     } catch (e) {
       this.logger.error(`AI Extraction failed: ${(e as Error).message}`);
-      throw new BadRequestException('Gagal mengekstrak data JSON dari dokumen. Format dokumen mungkin kurang standar.');
+      // If AI fails but regex found something, return regex results
+      if (regexResult.nibNumber || regexResult.npwp || regexResult.businessName) {
+        this.logger.log('[OCR] AI failed but regex found data, returning partial result');
+        return regexResult;
+      }
+      throw new BadRequestException('Gagal mengekstrak data dari dokumen. Coba upload gambar (JPG/PNG) yang lebih jelas.');
     }
   }
 }

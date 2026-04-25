@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { Loader2 } from 'lucide-react';
 import { WizardProgress } from '@/components/onboarding/wizard-progress';
 import { WizardStep1 } from '@/components/onboarding/wizard-step-1';
 import { WizardStep2 } from '@/components/onboarding/wizard-step-2';
@@ -293,39 +294,61 @@ export default function OnboardingPage() {
   }
 
   return (
-    <div className="max-w-2xl mx-auto py-4 animate-fade-in">
+    <div className="max-w-2xl mx-auto py-6 animate-fade-in">
+      {/* Header */}
+      <div className="mb-8 text-center">
+        <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-primary to-accent flex items-center justify-center mx-auto mb-4 shadow-lg shadow-primary/20">
+          <span className="text-white font-bold text-lg">LC</span>
+        </div>
+        <h1 className="text-2xl font-heading font-bold">Setup Profil Bisnis</h1>
+        <p className="text-sm text-muted-foreground mt-1">
+          Langkah {currentStep} dari 5 &mdash; {STEP_LABELS[currentStep - 1]}
+        </p>
+      </div>
+
       <WizardProgress
         currentStep={currentStep}
         totalSteps={5}
         labels={STEP_LABELS}
       />
 
-      <div className="rounded-xl border border-border bg-card p-6">
+      <div className="rounded-2xl border border-border bg-card p-8 shadow-sm">
         
         {/* Banner Auto-Scan */}
         {currentStep === 1 && (
-          <div className="mb-6 p-5 bg-gradient-to-r from-primary/10 to-accent/10 border border-primary/20 rounded-xl relative overflow-hidden">
-            <div className="relative z-10 flex flex-col items-center text-center">
-              <h3 className="font-heading font-semibold text-lg text-primary mb-1">Mager isi manual? 😎✨</h3>
-              <p className="text-sm text-muted-foreground mb-4 max-w-md">
-                Upload foto/PDF Nomor Induk Berusaha (NIB) atau NPWP Perusahaan dan Artificial Intelligence kami akan mengisikan form secara otomatis!
-              </p>
-              
-              <label className="relative cursor-pointer bg-primary text-primary-foreground font-semibold px-4 py-2 rounded-lg text-sm shadow-md hover:shadow-lg transition-all hover:-translate-y-0.5">
-                {isSubmitting ? 'Menganalisa Milsedetik...' : '📸 Upload Teks & Scan (AI)'}
-                <input 
-                  type="file" 
-                  className="hidden" 
-                  accept=".pdf,.jpg,.jpeg,.png"
-                  onChange={handleScanDocument}
-                  disabled={isSubmitting}
-                />
-              </label>
+          <div className="mb-8 p-5 bg-gradient-to-br from-primary/5 via-accent/5 to-primary/5 border border-primary/15 rounded-2xl relative overflow-hidden">
+            <div className="relative z-10 flex items-center gap-5">
+              <div className="w-14 h-14 rounded-2xl bg-primary/10 flex items-center justify-center shrink-0">
+                <svg className="w-7 h-7 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M7.5 3.75H6A2.25 2.25 0 003.75 6v1.5M16.5 3.75H18A2.25 2.25 0 0120.25 6v1.5M20.25 16.5V18A2.25 2.25 0 0118 20.25h-1.5M3.75 16.5V18A2.25 2.25 0 006 20.25h1.5M9 12h6m-3-3v6" />
+                </svg>
+              </div>
+              <div className="flex-1">
+                <h3 className="font-heading font-semibold text-sm text-foreground mb-0.5">Scan Dokumen Otomatis</h3>
+                <p className="text-xs text-muted-foreground mb-3">
+                  Upload NIB atau NPWP (PDF/gambar) dan AI akan mengisi form secara otomatis.
+                </p>
+                <label className="inline-flex items-center gap-2 cursor-pointer bg-primary text-primary-foreground font-medium px-4 py-2 rounded-xl text-xs shadow-sm hover:bg-primary/90 transition-all">
+                  {isSubmitting ? (
+                    <><Loader2 className="w-3.5 h-3.5 animate-spin" /> Menganalisa...</>
+                  ) : (
+                    <>
+                      <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5" />
+                      </svg>
+                      Upload &amp; Scan
+                    </>
+                  )}
+                  <input 
+                    type="file" 
+                    className="hidden" 
+                    accept=".pdf,.jpg,.jpeg,.png"
+                    onChange={handleScanDocument}
+                    disabled={isSubmitting}
+                  />
+                </label>
+              </div>
             </div>
-            
-            {/* Background embellishment */}
-            <div className="absolute -top-10 -left-10 w-32 h-32 bg-primary/20 rounded-full blur-3xl mix-blend-screen" />
-            <div className="absolute -bottom-10 -right-10 w-32 h-32 bg-accent/20 rounded-full blur-3xl mix-blend-screen" />
           </div>
         )}
 
@@ -377,31 +400,33 @@ export default function OnboardingPage() {
 
         {/* Error */}
         {error && !isLimitReached && (
-          <div className="mt-4 p-3 rounded-xl bg-destructive/10 text-destructive text-sm text-center border border-destructive/20">
-            {error}
+          <div className="mt-6 flex items-start gap-3 p-4 rounded-xl bg-destructive/5 border border-destructive/20">
+            <svg className="w-5 h-5 text-destructive shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" />
+            </svg>
+            <p className="text-sm text-destructive">{error}</p>
           </div>
         )}
 
         {/* Upgrade Paywall Warning */}
         {isLimitReached && (
-          <div className="mt-6 p-6 rounded-2xl bg-primary/5 border-2 border-primary/20 text-center animate-fade-in relative overflow-hidden">
-            <div className="absolute -top-10 -right-10 w-32 h-32 bg-primary/10 rounded-full blur-3xl" />
-            <h3 className="text-xl font-heading font-bold text-primary mb-2">
-              Kuota Profil Penuh! 🚀
+          <div className="mt-6 p-6 rounded-2xl bg-primary/5 border border-primary/20 text-center animate-fade-in">
+            <h3 className="text-lg font-heading font-bold text-foreground mb-2">
+              Kuota Profil Penuh
             </h3>
-            <p className="text-sm text-muted-foreground mb-6">
-              Paket langganan Anda saat ini tidak mendukung lebih dari jumlah profil bisnis yang Anda miliki. Upgrade ke paket Growth/Business untuk mendapatkan kuota profil bisnis tak terbatas.
+            <p className="text-sm text-muted-foreground mb-6 max-w-md mx-auto">
+              Paket Anda tidak mendukung profil bisnis tambahan. Upgrade untuk menambah kuota.
             </p>
             <div className="flex items-center justify-center gap-3">
               <Link 
                 href="/pricing"
-                className="px-6 py-2.5 rounded-xl bg-primary text-primary-foreground font-semibold shadow-md shadow-primary/20 hover:-translate-y-0.5 hover:shadow-lg transition-all"
+                className="px-6 py-2.5 rounded-xl bg-primary text-primary-foreground font-semibold text-sm hover:bg-primary/90 transition-all"
               >
-                Lihat Paket Upgrade
+                Lihat Paket
               </Link>
               <button 
                 onClick={() => setIsLimitReached(false)}
-                className="px-6 py-2.5 rounded-xl border border-border font-semibold hover:bg-muted/50 transition-colors"
+                className="px-6 py-2.5 rounded-xl border border-border text-sm font-medium hover:bg-muted/50 transition-colors"
                 type="button"
               >
                 Kembali
@@ -411,14 +436,14 @@ export default function OnboardingPage() {
         )}
 
         {/* Navigation */}
-        <div className="flex gap-3 mt-8">
+        <div className="flex gap-3 mt-10 pt-6 border-t border-border">
           {currentStep > 1 && (
             <button
               type="button"
               onClick={handleBack}
-              className="flex-1 h-11 rounded-xl border border-border text-sm font-medium hover:bg-muted/50 transition-all"
+              className="flex-1 h-12 rounded-xl border border-border text-sm font-medium hover:bg-muted/50 transition-all"
             >
-              ← Kembali
+              Kembali
             </button>
           )}
 
@@ -426,18 +451,18 @@ export default function OnboardingPage() {
             <button
               type="button"
               onClick={handleNext}
-              className="flex-1 h-11 rounded-xl bg-primary text-primary-foreground font-semibold shadow-lg shadow-primary/25 hover:shadow-xl hover:-translate-y-0.5 transition-all duration-200"
+              className="flex-1 h-12 rounded-xl bg-primary text-primary-foreground font-semibold shadow-sm hover:bg-primary/90 transition-all duration-200"
             >
-              Lanjut →
+              Lanjutkan
             </button>
           ) : (
             <button
               type="button"
               onClick={handleSubmit}
               disabled={isSubmitting}
-              className="flex-1 h-11 rounded-xl bg-primary text-primary-foreground font-semibold shadow-lg shadow-primary/25 hover:shadow-xl hover:-translate-y-0.5 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="flex-1 h-12 rounded-xl bg-primary text-primary-foreground font-semibold shadow-sm hover:bg-primary/90 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {isSubmitting ? 'Menyimpan...' : '🚀 Mulai Analisis Compliance'}
+              {isSubmitting ? 'Menyimpan...' : 'Mulai Analisis Compliance'}
             </button>
           )}
         </div>
