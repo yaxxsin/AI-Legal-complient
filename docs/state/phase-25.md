@@ -32,4 +32,4 @@ Plan-based access:
 
 ## NOW: Phase 25 Completed (Ollama + Gemini scope)
 ## NEXT: OpenAI + Anthropic adapters (deferred), streaming support (deferred)
-## CRUMBS: saved: ea149fd → feature/phase-25-multiprofile
+## CRUMBS: saved: 733de3e → feature/phase-25-multiprofile

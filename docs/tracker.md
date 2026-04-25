@@ -78,3 +78,6 @@
 - [2026-04-22] Admin session separation: middleware decodes JWT role at edge, AdminGuard client component, admin layout wrapped, login redirects admin→/admin, sidebar shows admin/user switcher link.
 - [2026-04-25] ea149fd → feature/phase-25-multiprofile | [phase-25] feat: multi-AI model integration — Ollama + Gemini provider abstraction, model selector UI (32 files, +829 -169)
 - [2026-04-25] Phase 25 complete (Ollama + Gemini): AiProvider interface, OllamaProvider, GeminiProvider, AiProviderFactory with plan-based access + fallback, ChatService refactored, model/provider fields on Conversation+Message, model selector dropdown in chat UI, GET /chat/models endpoint.
+- [2026-04-25] [HOTFIX] Fixed PDF scan reading long documents in onboarding (400 Bad Request): Updated `pdf-parse` v2 instantiation logic to use class-based `new PDFParse({ data })` and implemented full-text regex scanning with smart truncation.
+- [2026-04-25] Enhanced multi-profile UI: Added right-click context menu to delete business profiles from the sidebar switcher. Included a confirmation dialog natively rendered via React Portal (`createPortal` to `document.body`) to prevent offset issues from sidebar CSS transforms.
+- [2026-04-25] 733de3e → feature/phase-25-multiprofile | [hotfix] PDF parse + right-click context menu delete profiles
