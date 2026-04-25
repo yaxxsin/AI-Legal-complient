@@ -41,6 +41,17 @@ export class ChatService {
     return convo;
   }
 
+  /** Delete a conversation and all its messages */
+  async deleteConversation(id: string, userId: string) {
+    const convo = await this.prisma.conversation.findUnique({ where: { id } });
+    if (!convo || convo.userId !== userId) {
+      throw new NotFoundException('Conversation not found');
+    }
+    // Messages cascade-delete via onDelete: Cascade in schema
+    await this.prisma.conversation.delete({ where: { id } });
+    this.logger.log(`[Chat] Conversation ${id} deleted by user ${userId}`);
+  }
+
   /** Send a message using the selected AI model */
   async chat(
     message: string,

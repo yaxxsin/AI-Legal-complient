@@ -8,8 +8,9 @@ export const PLANS = [
     features: [
       'Analisis 1 Profil Bisnis',
       'ComplianceBot (10 chat/hari)',
-      'Akses Checklist Legal Dasar',
+      'AI Model: Llama & Qwen (Lokal)',
       'Generate 2 Dokumen/bulan',
+      'Akses Checklist Legal Dasar',
       'Akses Community Support',
     ],
     highlight: false,
@@ -19,12 +20,13 @@ export const PLANS = [
     name: 'Starter',
     description: 'Ideal untuk startup dan usaha berkembang',
     price_monthly: 99000,
-    price_annual: 990000, // 2 bulan gratis
+    price_annual: 990000,
     features: [
       'Analisis 1 Profil Bisnis',
       'ComplianceBot (Unlimited)',
-      'Akses Full Checklist Legal',
+      'AI Model: + Gemini 2.0 Flash',
       'Generate 10 Dokumen/bulan',
+      'Akses Full Checklist Legal',
       'Email Digest Regulasi Baru',
       'Custom Email Support',
     ],
@@ -38,8 +40,8 @@ export const PLANS = [
     price_annual: 2990000,
     features: [
       'Analisis 3 Profil Bisnis',
-      'Priority ComplianceBot',
-      'Akses Full Checklist Legal',
+      'ComplianceBot (Unlimited)',
+      'AI Model: + Gemini 2.5 Pro',
       'Generate Dokumen Unlimited',
       'Notifikasi Real-time Alert',
       'Review Kontrak AI (3x/bulan)',
@@ -55,8 +57,8 @@ export const PLANS = [
     price_annual: 7990000,
     features: [
       'Analisis 10 Profil Bisnis',
-      'Priority ComplianceBot',
-      'Akses Full Checklist Legal',
+      'ComplianceBot (Unlimited)',
+      'AI Model: Semua Model Premium',
       'Generate Dokumen Unlimited',
       'Custom Alert Dashboard',
       'Review Kontrak AI (20x/bulan)',

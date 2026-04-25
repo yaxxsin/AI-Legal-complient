@@ -135,17 +135,21 @@ async function main(): Promise<void> {
   console.log(`✅ ${subSectors.length} sub-sectors seeded`);
 
   // Default feature flags — keys MUST match @RequireFeature() decorators on controllers
+  // targetPlans [] = all plans allowed, specific array = only those plans
+  const ALL_PLANS = ['free', 'starter', 'growth', 'business'];
+  const PAID_ONLY = ['growth', 'business'];
   const flagData = [
-    { key: 'menu-dashboard', enabled: true, targetPlans: [] },
-    { key: 'menu-chat', enabled: true, targetPlans: [] },
-    { key: 'menu-checklist', enabled: true, targetPlans: [] },
-    { key: 'menu-documents', enabled: true, targetPlans: [] },
-    { key: 'menu-doc-review', enabled: true, targetPlans: ['growth', 'business'] },
-    { key: 'menu-hr', enabled: true, targetPlans: [] },
-    { key: 'menu-notifications', enabled: true, targetPlans: [] },
-    { key: 'menu-knowledge', enabled: true, targetPlans: [] },
-    { key: 'menu-billing', enabled: true, targetPlans: [] },
-    { key: 'menu-settings', enabled: true, targetPlans: [] },
+    { key: 'menu-dashboard', enabled: true, targetPlans: ALL_PLANS },
+    { key: 'menu-chat', enabled: true, targetPlans: ALL_PLANS },
+    { key: 'menu-checklist', enabled: true, targetPlans: ALL_PLANS },
+    { key: 'menu-documents', enabled: true, targetPlans: ALL_PLANS },
+    { key: 'menu-doc-review', enabled: true, targetPlans: PAID_ONLY },
+    { key: 'menu-hr', enabled: true, targetPlans: PAID_ONLY },
+    { key: 'menu-notifications', enabled: true, targetPlans: ALL_PLANS },
+    { key: 'menu-knowledge', enabled: true, targetPlans: ALL_PLANS },
+    { key: 'menu-billing', enabled: true, targetPlans: ALL_PLANS },
+    { key: 'menu-settings', enabled: true, targetPlans: ALL_PLANS },
+    { key: 'menu-oss-wizard', enabled: true, targetPlans: ALL_PLANS },
   ];
 
   const flags = await Promise.all(

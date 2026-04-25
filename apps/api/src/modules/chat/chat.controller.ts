@@ -1,4 +1,4 @@
-import { Controller, Post, Get, Param, Body, UseGuards, Req } from '@nestjs/common';
+import { Controller, Post, Get, Delete, Param, Body, UseGuards, Req } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { SkipThrottle } from '@nestjs/throttler';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
@@ -49,6 +49,16 @@ export class ChatController {
   ) {
     const data = await this.chatService.getConversation(id, req.user.id);
     return { success: true, data };
+  }
+
+  @Delete('conversations/:id')
+  @ApiOperation({ summary: 'Delete a conversation and all its messages' })
+  async deleteConversation(
+    @Param('id') id: string,
+    @Req() req: { user: { id: string } },
+  ) {
+    await this.chatService.deleteConversation(id, req.user.id);
+    return { success: true, message: 'Percakapan dihapus' };
   }
 
   @Post()
