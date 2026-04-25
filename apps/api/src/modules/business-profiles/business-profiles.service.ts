@@ -10,7 +10,7 @@ import { CreateBusinessProfileDto, UpdateBusinessProfileDto, UpdateStepDto } fro
 import { ChatService } from '../chat/chat.service';
 import { ComplianceItemsService } from '../compliance-items/compliance-items.service';
 import * as Tesseract from 'tesseract.js';
-const pdfParse = require('pdf-parse');
+
 
 /** Plan-based profile limits */
 const PLAN_LIMITS: Record<string, number> = {
@@ -256,10 +256,24 @@ export class BusinessProfilesService {
       province: '',
     };
 
-    // NIB: 13-digit number, often preceded by "NIB" or "Nomor Induk Berusaha"
-    const nibMatch = text.match(/(?:NIB|Nomor Induk Berusaha)[:\s]*(\d{13})/i)
-      || text.match(/\b(\d{13})\b/); // fallback: any 13-digit number
-    if (nibMatch) result.nibNumber = nibMatch[1];
+    // NIB: 13-digit number, multiple patterns for different NIB formats
+    const nibPatterns = [
+      /(?:NIB|Nomor Induk Berusaha)[:\s]*([\d\s]{13,16})/i,
+      /(?:Nomor\s+Induk)[:\s]*([\d\s]{13,16})/i,
+      /(?:NIB)[:\s.]*([\d]{13})/i,
+    ];
+    for (const pattern of nibPatterns) {
+      const m = text.match(pattern);
+      if (m) {
+        result.nibNumber = m[1].replace(/\s/g, '').substring(0, 13);
+        break;
+      }
+    }
+    // Fallback: any standalone 13-digit number
+    if (!result.nibNumber) {
+      const fallback = text.match(/\b(\d{13})\b/);
+      if (fallback) result.nibNumber = fallback[1];
+    }
 
     // NPWP: 15 or 16 digits, with or without dots/dashes
     const npwpMatch = text.match(/(?:NPWP)[:\s]*([\d.\-]{15,25})/i)
@@ -283,18 +297,95 @@ export class BusinessProfilesService {
     }
 
     // Business name: look for "Nama Perusahaan", "Nama Usaha", or after PT/CV
-    const nameMatch = text.match(/(?:Nama (?:Perusahaan|Usaha|Badan Usaha))[:\s]*([^\n]{3,80})/i)
+    const nameMatch = text.match(/(?:Nama (?:Perusahaan|Usaha|Badan Usaha|Pelaku Usaha))[:\s]*([^\n]{3,80})/i)
       || text.match(/(?:PT|CV|UD|Firma|Yayasan|Koperasi)\.?\s+([A-Z][A-Za-z\s&.]{2,60})/);
     if (nameMatch) {
       result.businessName = nameMatch[1].trim().replace(/\s+/g, ' ');
     }
 
+    // City/Province from common NIB patterns
+    const cityMatch = text.match(/(?:Kota|Kabupaten|Kab\.)[:\s/]*([A-Za-z\s]{3,30})/i);
+    if (cityMatch) result.city = cityMatch[1].trim();
+    const provMatch = text.match(/(?:Provinsi|Prov\.)[:\s/]*([A-Za-z\s]{3,30})/i);
+    if (provMatch) result.province = provMatch[1].trim();
+
     return result;
   }
 
   /**
+   * Smart truncation: extract relevant sections from long text for AI prompt.
+   * Instead of dumb substring(0, N), find paragraphs containing key terms.
+   */
+  private smartTruncateForAi(fullText: string, maxChars = 4000): string {
+    if (fullText.length <= maxChars) return fullText;
+
+    const keywords = [
+      'NIB', 'Nomor Induk', 'NPWP', 'Nama Perusahaan', 'Nama Usaha',
+      'Nama Pelaku', 'Badan Usaha', 'Perseroan', 'Kota', 'Provinsi',
+      'Kabupaten', 'Alamat', 'KBLI', 'Kegiatan Usaha', 'Modal',
+    ];
+
+    const lines = fullText.split('\n');
+    const relevantLines: { idx: number; line: string }[] = [];
+
+    // Collect lines containing keywords + surrounding context (±2 lines)
+    for (let i = 0; i < lines.length; i++) {
+      const hasKeyword = keywords.some((kw) =>
+        lines[i].toUpperCase().includes(kw.toUpperCase()),
+      );
+      if (hasKeyword) {
+        const start = Math.max(0, i - 2);
+        const end = Math.min(lines.length - 1, i + 2);
+        for (let j = start; j <= end; j++) {
+          if (!relevantLines.some((r) => r.idx === j)) {
+            relevantLines.push({ idx: j, line: lines[j] });
+          }
+        }
+      }
+    }
+
+    // Sort by line index to preserve order
+    relevantLines.sort((a, b) => a.idx - b.idx);
+
+    if (relevantLines.length === 0) {
+      // No keywords found — fall back to first chunk
+      return fullText.substring(0, maxChars);
+    }
+
+    // Build output, insert separator when lines are non-contiguous
+    let result = '';
+    for (let i = 0; i < relevantLines.length; i++) {
+      if (i > 0 && relevantLines[i].idx - relevantLines[i - 1].idx > 1) {
+        result += '\n[...]\n';
+      }
+      result += relevantLines[i].line + '\n';
+      if (result.length >= maxChars) break;
+    }
+
+    return result.trim();
+  }
+
+  /**
+   * Extract text from PDF using pdf-parse v2 (page by page).
+   * pdf-parse v2 API: new PDFParse({ buffer }) → .getText()
+   */
+  private async extractTextFromPdf(buffer: Buffer): Promise<string> {
+    try {
+      const { PDFParse } = require('pdf-parse');
+      const parser = new PDFParse({ data: new Uint8Array(buffer) });
+      const result = await parser.getText();
+      const text = result?.text?.trim() || '';
+      this.logger.log(`[PDF] Extracted ${text.length} chars, ${result?.pages ?? '?'} page(s)`);
+      return text;
+    } catch (err) {
+      this.logger.error(`[PDF] pdf-parse extraction failed: ${(err as Error).message}`);
+      return '';
+    }
+  }
+
+  /**
    * Auto-scan document for Onboarding (KTP/NPWP/NIB)
-   * Uses pdf-parse or Tesseract.js, then Ollama to extract JSON fields.
+   * Uses pdfjs-dist or Tesseract.js, then Ollama to extract JSON fields.
    */
   async scanDocument(userId: string, file: Express.Multer.File) {
     let extractedText = '';
@@ -303,37 +394,18 @@ export class BusinessProfilesService {
     // 1. Text Extraction
     try {
       if (ext === 'pdf') {
-        // Try text-layer extraction first
-        try {
-          const parsed = await pdfParse(file.buffer);
-          extractedText = parsed.text?.trim() || '';
-        } catch {
-          this.logger.warn('pdf-parse failed, PDF may be scanned/image-based');
-        }
-
-        // If PDF has no text layer (scanned document), fall back to OCR
-        if (!extractedText) {
-          this.logger.log('PDF has no text layer, attempting OCR via Tesseract...');
-          try {
-            const tesseractResult = await Tesseract.recognize(file.buffer, 'ind', {
-              logger: (m: any) => this.logger.debug(`Tesseract: ${m.status} - ${m.progress}`),
-            });
-            extractedText = tesseractResult.data.text;
-          } catch {
-            this.logger.warn('Tesseract OCR on PDF also failed');
-          }
-        }
+        extractedText = await this.extractTextFromPdf(file.buffer);
       } else if (['jpg', 'jpeg', 'png', 'webp'].includes(ext || '')) {
         const tesseractResult = await Tesseract.recognize(file.buffer, 'ind', {
           logger: (m: any) => this.logger.debug(`Tesseract: ${m.status} - ${m.progress}`),
         });
         extractedText = tesseractResult.data.text;
       } else {
-        throw new BadRequestException('Format file tidak didukung untuk OCR (Hanya PDF/Image)');
+        throw new BadRequestException('Format file tidak didukung (PDF/JPG/PNG/WebP)');
       }
     } catch (e) {
       if (e instanceof BadRequestException) throw e;
-      this.logger.error(`OCR Extraction failed: ${(e as Error).message}`);
+      this.logger.error(`Extraction failed: ${(e as Error).message}`);
       throw new BadRequestException('Gagal membaca isi dokumen. Pastikan file jelas dan tidak diproteksi password.');
     }
 
@@ -351,17 +423,17 @@ export class BusinessProfilesService {
 
     this.logger.log(`[OCR] Extracted ${cleanedText.length} chars from ${ext} file`);
 
-    // Smart truncation: keep first 5000 chars (enough for most NIB/NPWP docs)
-    const truncatedText = cleanedText.substring(0, 5000);
+    // 2. Try regex extraction on FULL text first (fast, no AI, scans all pages)
+    const regexResult = this.tryRegexExtraction(cleanedText);
+    this.logger.log(`[OCR] Regex found: NIB=${regexResult.nibNumber ? 'YES' : 'NO'}, NPWP=${regexResult.npwp ? 'YES' : 'NO'}, Name=${regexResult.businessName ? 'YES' : 'NO'}`);
 
-    // 2. Try regex extraction first (fast, no AI needed for standard formats)
-    const regexResult = this.tryRegexExtraction(truncatedText);
+    // 3. Smart truncation for AI prompt: extract relevant sections only
+    const truncatedText = this.smartTruncateForAi(cleanedText, 4000);
 
-    // 3. AI Extraction via Ollama (for fields regex couldn't find)
-    const prompt = `Ekstrak data dari dokumen NIB/NPWP/KTP berikut. Output HANYA JSON, tanpa markdown atau teks lain.
+    // 4. AI Extraction via Ollama (for fields regex couldn't find)
+    const prompt = `Ekstrak data dari dokumen NIB/NPWP/KTP berikut. Output HANYA JSON, tanpa markdown.
 Jika field tidak ditemukan, isi string kosong "".
-
-{"businessName":"","npwp":"","nibNumber":"","entityType":"PT/CV/Firma/Yayasan/Perorangan/Lainnya","city":"","province":""}
+Format: {"businessName":"","npwp":"","nibNumber":"","entityType":"","city":"","province":""}
 
 Teks:
 ${truncatedText}`;
@@ -382,8 +454,8 @@ ${truncatedText}`;
         npwp: regexResult.npwp || aiResult.npwp || '',
         nibNumber: regexResult.nibNumber || aiResult.nibNumber || '',
         entityType: regexResult.entityType || aiResult.entityType || '',
-        city: aiResult.city || '',
-        province: aiResult.province || '',
+        city: regexResult.city || aiResult.city || '',
+        province: regexResult.province || aiResult.province || '',
       };
     } catch (e) {
       this.logger.error(`AI Extraction failed: ${(e as Error).message}`);
