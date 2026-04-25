@@ -76,3 +76,5 @@
 - [2026-04-22] Plan enforcement: UsageLimitService (chat 10/day free, docs 2/mo free 10/mo starter, review growth/business only), subscription expiry cron @3AM, admin updatePlan syncs User+Subscription, billing page uses user.plan as source of truth, pricing page highlights active plan.
 - [2026-04-22] 2be3c75 → feature/phase-25-multiprofile | [security] feat: admin/user session separation — middleware JWT role check, AdminGuard, login redirect, sidebar switcher (5 files, +97 -7)
 - [2026-04-22] Admin session separation: middleware decodes JWT role at edge, AdminGuard client component, admin layout wrapped, login redirects admin→/admin, sidebar shows admin/user switcher link.
+- [2026-04-25] ea149fd → feature/phase-25-multiprofile | [phase-25] feat: multi-AI model integration — Ollama + Gemini provider abstraction, model selector UI (32 files, +829 -169)
+- [2026-04-25] Phase 25 complete (Ollama + Gemini): AiProvider interface, OllamaProvider, GeminiProvider, AiProviderFactory with plan-based access + fallback, ChatService refactored, model/provider fields on Conversation+Message, model selector dropdown in chat UI, GET /chat/models endpoint.
