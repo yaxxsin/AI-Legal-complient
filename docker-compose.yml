@@ -74,8 +74,8 @@ services:
     environment:
       DATABASE_URL: postgresql://postgres:postgres@postgres:5432/localcompliance
       API_PORT: 3002
-      CORS_ORIGIN: http://192.168.20.73:3000
-      NODE_ENV: development
+      CORS_ORIGIN: https://localcomplience.locallitix.my.id,http://192.168.20.73:3000,http://localhost:3000
+      NODE_ENV: production
       JWT_SECRET: local-dev-jwt-secret-change-in-production-min32chars
       JWT_EXPIRATION: 1h
       JWT_REFRESH_EXPIRATION: 30d
