@@ -17,7 +17,7 @@ export function TeamTab() {
 
   const fetchTeams = async () => {
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001/api/v1';
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3002/api/v1';
       const res = await fetch(`${apiUrl}/teams`, {
         credentials: 'include',
       });
@@ -44,7 +44,7 @@ export function TeamTab() {
     e.preventDefault();
     if (!newTeamName) return;
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001/api/v1';
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3002/api/v1';
       const res = await fetch(`${apiUrl}/teams`, {
         method: 'POST',
         credentials: 'include',
@@ -67,7 +67,7 @@ export function TeamTab() {
     if (!selectedTeamId || !inviteEmail) return;
 
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001/api/v1';
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3002/api/v1';
       const res = await fetch(`${apiUrl}/teams/${selectedTeamId}/invitations`, {
         method: 'POST',
         credentials: 'include',
@@ -93,7 +93,7 @@ export function TeamTab() {
   const handleRemoveMember = async (teamId: string, userIdTarget: string) => {
     if (!confirm('Hapus anggota ini dari tim?')) return;
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001/api/v1';
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3002/api/v1';
       const res = await fetch(`${apiUrl}/teams/${teamId}/members/${userIdTarget}`, {
         method: 'DELETE',
         credentials: 'include',

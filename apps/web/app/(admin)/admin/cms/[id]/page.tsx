@@ -289,7 +289,7 @@ export default function AdminCmsEditorPage({ params }: { params: { id: string } 
   const [isLoading, setIsLoading] = useState(!isNew);
   const [isSaving, setIsSaving] = useState(false);
 
-  const apiUrl = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001/api/v1';
+  const apiUrl = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3002/api/v1';
 
   /* --- Fetch existing page --- */
   const fetchPage = useCallback(async () => {

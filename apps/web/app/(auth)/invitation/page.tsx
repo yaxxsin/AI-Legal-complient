@@ -27,7 +27,7 @@ function InvitationContent() {
 
     const claimInvitation = async () => {
       try {
-        const apiUrl = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001/api/v1';
+        const apiUrl = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3002/api/v1';
         
         const res = await fetch(`${apiUrl}/teams/invitations/accept`, {
           method: 'POST',

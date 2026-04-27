@@ -46,7 +46,7 @@ export default function BillingDashboardPage() {
 
   const handleDownloadInvoice = async (invoiceId: string) => {
     try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api/v1'}/billing/invoices/${invoiceId}/download`, {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3002/api/v1'}/billing/invoices/${invoiceId}/download`, {
         credentials: 'include',
       });
       if (!res.ok) throw new Error('Gagal mendownload invoice');

@@ -3,7 +3,7 @@
 import { useEffect } from 'react';
 import { useProfileStore } from '@/stores/profile-store';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001/api/v1';
+const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3002/api/v1';
 
 /** Fetches business profiles and syncs to Zustand store */
 export function useProfiles() {

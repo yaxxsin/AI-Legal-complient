@@ -29,7 +29,7 @@ export function WizardStep2({
 
   // Fetch root sectors
   useEffect(() => {
-    const apiUrl = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001/api/v1';
+    const apiUrl = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3002/api/v1';
     fetch(`${apiUrl}/sectors`)
       .then((r) => r.json())
       .then((data) => setSectors(Array.isArray(data) ? data : data.data ?? []))
@@ -43,7 +43,7 @@ export function WizardStep2({
       setSubSectors([]);
       return;
     }
-    const apiUrl = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001/api/v1';
+    const apiUrl = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3002/api/v1';
     fetch(`${apiUrl}/sectors/${sectorId}/sub-sectors`)
       .then((r) => r.json())
       .then((data) => setSubSectors(Array.isArray(data) ? data : data.data ?? []))

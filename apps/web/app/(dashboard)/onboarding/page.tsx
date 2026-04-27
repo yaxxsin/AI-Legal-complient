@@ -60,7 +60,7 @@ export default function OnboardingPage() {
   const [error, setError] = useState('');
   const [isLimitReached, setIsLimitReached] = useState(false);
 
-  const apiUrl = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001/api/v1';
+  const apiUrl = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3002/api/v1';
 
   useEffect(() => {
     async function checkExistingDraft() {

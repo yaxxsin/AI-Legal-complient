@@ -55,7 +55,7 @@ export default function DocumentReviewPage() {
       
       const token = document.cookie.split('; ').find(row => row.startsWith('lc_token='))?.split('=')[1];
 
-      const res = await fetch('http://localhost:3001/api/v1/document-review/upload', {
+      const res = await fetch('http://localhost:3002/api/v1/document-review/upload', {
         method: 'POST',
         headers: {
           ...(token && { Authorization: `Bearer ${token}` }),
@@ -82,7 +82,7 @@ export default function DocumentReviewPage() {
       interval = setInterval(async () => {
         try {
           const token = document.cookie.split('; ').find(row => row.startsWith('lc_token='))?.split('=')[1];
-          const res = await fetch(`http://localhost:3001/api/v1/document-review/${activeReview.id}`, {
+          const res = await fetch(`http://localhost:3002/api/v1/document-review/${activeReview.id}`, {
             headers: { ...(token && { Authorization: `Bearer ${token}` }) },
           });
           
