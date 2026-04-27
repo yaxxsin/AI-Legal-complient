@@ -86,6 +86,7 @@ services:
       MINIO_SECRET_KEY: minioadmin
       MINIO_BUCKET: localcompliance
       MINIO_USE_SSL: "false"
+      MINIO_PUBLIC_HOST: localhost
       OLLAMA_BASE_URL: http://host.docker.internal:11434
       OLLAMA_MODEL: llama3.2:1b
       PASAL_API_URL: https://pasal.id/api/v1

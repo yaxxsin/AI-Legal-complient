@@ -74,9 +74,8 @@ export class StorageService {
       const useSSL = this.configService.get<string>('MINIO_USE_SSL') === 'true';
       const protocol = useSSL ? 'https' : 'http';
       
-      // If we are in docker, MINIO_ENDPOINT might be 'minio', but for frontend access we want localhost
-      // Let's use a standard public URL fallback if endpoint is not localhost
-      const publicHost = endpoint === 'minio' ? 'localhost' : endpoint;
+      // Use MINIO_PUBLIC_HOST env var (e.g., server IP or domain), fallback to endpoint
+      const publicHost = this.configService.get<string>('MINIO_PUBLIC_HOST') || endpoint;
 
       return `${protocol}://${publicHost}:${port}/${this.bucketName}/${objectName}`;
     } catch (err) {
