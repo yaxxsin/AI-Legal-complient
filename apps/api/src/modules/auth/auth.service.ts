@@ -32,7 +32,7 @@ interface SessionMeta {
 export const COOKIE_OPTIONS = {
   httpOnly: true,
   secure: process.env.NODE_ENV === 'production', // true for HTTPS
-  sameSite: 'lax' as const,
+  sameSite: process.env.NODE_ENV === 'production' ? 'none' as const : 'lax' as const, // 'none' for cross-domain in production
   path: '/',
 };
 
