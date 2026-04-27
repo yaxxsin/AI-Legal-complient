@@ -1,11 +1,11 @@
 # ============================================
-# LocalCompliance — Docker Compose
+# LocalCompliance � Docker Compose
 # Full development stack: PostgreSQL + Redis + MinIO + API + Web
 # Usage: docker-compose up -d
 # ============================================
 
 services:
-  # ── PostgreSQL 16 ─────────────────────────
+  # -- PostgreSQL 16 -------------------------
   postgres:
     image: postgres:16-alpine
     container_name: lc-postgres
@@ -24,7 +24,7 @@ services:
       timeout: 3s
       retries: 5
 
-  # ── Redis 7 (BullMQ queue) ────────────────
+  # -- Redis 7 (BullMQ queue) ----------------
   redis:
     image: redis:7-alpine
     container_name: lc-redis
@@ -37,7 +37,7 @@ services:
       timeout: 3s
       retries: 5
 
-  # ── MinIO (S3-compatible storage) ─────────
+  # -- MinIO (S3-compatible storage) ---------
   minio:
     image: minio/minio:latest
     container_name: lc-minio
@@ -57,7 +57,7 @@ services:
       timeout: 3s
       retries: 5
 
-  # ── NestJS API ────────────────────────────
+  # -- NestJS API ----------------------------
   api:
     build:
       context: .
@@ -94,11 +94,20 @@ services:
     ports:
       - "3002:3002"
 
-  # ── Next.js Frontend ─────────────────────
+  # -- Next.js Frontend ---------------------
   web:
     build:
       context: .
       dockerfile: apps/web/Dockerfile
+      args:
+        # IMPORTANT: Change this to your server's public IP or domain
+        # For local: http://localhost:3002/api/v1
+        # For server: http://YOUR_SERVER_IP:3002/api/v1
+        NEXT_PUBLIC_API_URL: http://localhost:3002/api/v1
+        NEXT_PUBLIC_SUPABASE_URL: https://placeholder.supabase.co
+        NEXT_PUBLIC_SUPABASE_ANON_KEY: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.placeholder
+        NEXT_PUBLIC_MIDTRANS_CLIENT_KEY: SB-Mid-client-REPLACE_WITH_YOUR_SANDBOX_KEY
+        NEXT_PUBLIC_MIDTRANS_IS_PRODUCTION: "false"
     container_name: lc-web
     restart: unless-stopped
     depends_on:

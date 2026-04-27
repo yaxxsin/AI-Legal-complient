@@ -38,7 +38,7 @@ COPY --from=builder /app/apps/api/node_modules/ ./apps/api/node_modules/
 
 WORKDIR /app/apps/api
 
-EXPOSE 3001
+EXPOSE 3002
 
 # Run migrations then start
 CMD ["sh", "-c", "npx prisma migrate deploy && node dist/main.js"]
