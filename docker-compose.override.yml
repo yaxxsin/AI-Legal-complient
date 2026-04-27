@@ -8,4 +8,4 @@ services:
     build:
       args:
         # API URL untuk browser (client-side)
-        NEXT_PUBLIC_API_URL: http://192.168.20.73:3002/api/v1
+        NEXT_PUBLIC_API_URL: https://api.locallitix.my.id/api/v1
