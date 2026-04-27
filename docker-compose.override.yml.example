@@ -1,0 +1,20 @@
+# ============================================
+# LocalCompliance — Docker Compose Override
+# 
+# Copy this file to docker-compose.override.yml
+# and update NEXT_PUBLIC_API_URL with your server IP
+# 
+# Usage:
+#   1. cp docker-compose.override.yml.example docker-compose.override.yml
+#   2. Edit NEXT_PUBLIC_API_URL with your server's public IP
+#   3. docker-compose up -d --build
+# ============================================
+
+services:
+  web:
+    build:
+      args:
+        # ⚠️ CHANGE THIS to your server's public IP or domain
+        # Example: http://192.168.1.100:3002/api/v1
+        # Example: https://api.yourdomain.com/api/v1
+        NEXT_PUBLIC_API_URL: http://YOUR_SERVER_IP:3002/api/v1
