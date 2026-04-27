@@ -4,6 +4,7 @@ import './chat.css';
 
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { useAuthStore } from '@/stores/auth-store';
+import { generateUUID } from '@/lib/uuid';
 import {
   Send,
   Bot,
@@ -160,7 +161,7 @@ export default function ChatPage() {
     if (!text || isLoading) return;
 
     const userMsg: Message = {
-      id: crypto.randomUUID(),
+      id: generateUUID(),
       role: 'user',
       content: text,
       timestamp: new Date(),
@@ -194,7 +195,7 @@ export default function ChatPage() {
             const retryData = await retryRes.json();
             if (retryData.data?.conversationId) setConversationId(retryData.data.conversationId);
             setMessages((prev) => [...prev, {
-              id: crypto.randomUUID(), role: 'assistant',
+              id: generateUUID(), role: 'assistant',
               content: retryData.data?.reply ?? 'Maaf, saya tidak dapat memproses permintaan Anda.',
               timestamp: new Date(),
             }]);
@@ -216,7 +217,7 @@ export default function ChatPage() {
       }
 
       setMessages((prev) => [...prev, {
-        id: crypto.randomUUID(),
+        id: generateUUID(),
         role: 'assistant',
         content: data.data?.reply ?? 'Maaf, saya tidak dapat memproses permintaan Anda.',
         timestamp: new Date(),
