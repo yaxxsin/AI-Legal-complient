@@ -1,9 +1,28 @@
 import { PrismaClient } from '@prisma/client';
+import * as bcrypt from 'bcryptjs';
 
 const prisma = new PrismaClient();
 
 async function main(): Promise<void> {
   console.log('🌱 Seeding database...');
+
+  // Admin User
+  const adminPasswordHash = await bcrypt.hash('Admin@2026', 10);
+  const adminUser = await prisma.user.upsert({
+    where: { email: 'admin@mail.com' },
+    update: {},
+    create: {
+      id: '00000000-0000-0000-0000-000000000099',
+      email: 'admin@mail.com',
+      fullName: 'Admin User',
+      passwordHash: adminPasswordHash,
+      role: 'admin',
+      plan: 'business',
+      emailVerified: true,
+      onboardingCompleted: true,
+    },
+  });
+  console.log(`✅ Admin user created: ${adminUser.email}`);
 
   // Compliance Categories (6 categories from blueprint)
   const categories = await Promise.all([
