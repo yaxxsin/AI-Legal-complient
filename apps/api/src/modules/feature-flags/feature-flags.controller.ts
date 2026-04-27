@@ -13,6 +13,7 @@ import { FeatureFlagsService } from './feature-flags.service';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
 import { Roles } from '../../common/decorators/roles.decorator';
+import { Public } from '../../common/decorators/public.decorator';
 
 @ApiTags('feature-flags')
 @ApiBearerAuth()
@@ -21,8 +22,9 @@ import { Roles } from '../../common/decorators/roles.decorator';
 export class FeatureFlagsController {
   constructor(private readonly featureFlagsService: FeatureFlagsService) {}
 
+  @Public()
   @Get('public')
-  @ApiOperation({ summary: 'Get active feature flags' })
+  @ApiOperation({ summary: 'Get active feature flags (no auth required)' })
   findActive() {
     return this.featureFlagsService.findActive();
   }

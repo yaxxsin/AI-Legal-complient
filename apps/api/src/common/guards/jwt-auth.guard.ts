@@ -4,9 +4,11 @@ import {
   Injectable,
   UnauthorizedException,
 } from '@nestjs/common';
+import { Reflector } from '@nestjs/core';
 import { ConfigService } from '@nestjs/config';
 import * as jwt from 'jsonwebtoken';
 import { PrismaService } from '../../database/prisma.service';
+import { IS_PUBLIC_KEY } from '../decorators/public.decorator';
 
 interface JwtPayload {
   sub: string;
@@ -21,6 +23,7 @@ export class JwtAuthGuard implements CanActivate {
   private readonly jwtSecret: string;
 
   constructor(
+    private readonly reflector: Reflector,
     private readonly config: ConfigService,
     private readonly prisma: PrismaService,
   ) {
@@ -28,6 +31,13 @@ export class JwtAuthGuard implements CanActivate {
   }
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
+    // Skip auth for @Public() endpoints
+    const isPublic = this.reflector.getAllAndOverride<boolean>(IS_PUBLIC_KEY, [
+      context.getHandler(),
+      context.getClass(),
+    ]);
+    if (isPublic) return true;
+
     const request = context.switchToHttp().getRequest();
     const token = this.extractToken(request);
 

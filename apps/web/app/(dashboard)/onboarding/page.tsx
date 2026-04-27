@@ -28,6 +28,8 @@ interface WizardData {
   nibNumber: string;
   nibIssuedDate?: string;
   npwp: string;
+  kbliCodes: string[];
+  kbliDescriptions: string[];
 }
 
 const INITIAL_DATA: WizardData = {
@@ -45,6 +47,8 @@ const INITIAL_DATA: WizardData = {
   nibNumber: '',
   nibIssuedDate: '',
   npwp: '',
+  kbliCodes: [],
+  kbliDescriptions: [],
 };
 
 export default function OnboardingPage() {
@@ -123,7 +127,7 @@ export default function OnboardingPage() {
 
     const stepDataMap: Record<number, Record<string, unknown>> = {
       1: { entityType: data.entityType },
-      2: { sectorId: data.sectorId, subSectorIds: data.subSectorIds },
+      2: { sectorId: data.sectorId, subSectorIds: data.subSectorIds, kbliCodes: data.kbliCodes, kbliDescriptions: data.kbliDescriptions },
       3: {
         businessName: data.businessName,
         establishmentDate: data.establishmentDate || undefined,
@@ -285,7 +289,20 @@ export default function OnboardingPage() {
       if (extracted.city) updateField('city', extracted.city);
       if (extracted.province) updateField('province', extracted.province);
 
-      alert('Teks berhasil dienkstrak! Cek otomatis field yang terisi.');
+      // KBLI extraction + auto-sector matching
+      if (extracted.kbliCodes?.length) {
+        updateField('kbliCodes', extracted.kbliCodes);
+        updateField('kbliDescriptions', extracted.kbliDescriptions || []);
+      }
+      if (extracted.suggestedSectorId) {
+        updateField('sectorId', extracted.suggestedSectorId);
+      }
+      if (extracted.suggestedSubSectorIds?.length) {
+        updateField('subSectorIds', extracted.suggestedSubSectorIds);
+      }
+
+      const kbliCount = extracted.kbliCodes?.length || 0;
+      alert(`Teks berhasil diekstrak!${kbliCount > 0 ? ` ${kbliCount} kode KBLI terdeteksi.` : ''} Cek otomatis field yang terisi.`);
     } catch(err) {
       setError((err as Error).message);
     } finally {
@@ -361,12 +378,28 @@ export default function OnboardingPage() {
         )}
 
         {currentStep === 2 && (
-          <WizardStep2
-            sectorId={data.sectorId}
-            subSectorIds={data.subSectorIds}
-            onSectorChange={(id) => updateField('sectorId', id)}
-            onSubSectorChange={(ids) => updateField('subSectorIds', ids)}
-          />
+          <>
+            {data.kbliCodes.length > 0 && (
+              <div className="mb-6 p-4 bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-800 rounded-xl">
+                <p className="text-xs font-medium text-green-700 dark:text-green-400 mb-2">
+                  ✅ KBLI terdeteksi dari dokumen NIB — sektor otomatis dipilih:
+                </p>
+                <div className="flex flex-wrap gap-1.5">
+                  {data.kbliCodes.map((code, i) => (
+                    <span key={code} className="inline-block text-xs bg-green-100 dark:bg-green-900/50 text-green-800 dark:text-green-300 px-2.5 py-1 rounded-lg font-mono">
+                      {code}{data.kbliDescriptions[i] ? ` — ${data.kbliDescriptions[i]}` : ''}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+            <WizardStep2
+              sectorId={data.sectorId}
+              subSectorIds={data.subSectorIds}
+              onSectorChange={(id) => updateField('sectorId', id)}
+              onSubSectorChange={(ids) => updateField('subSectorIds', ids)}
+            />
+          </>
         )}
 
         {currentStep === 3 && (
