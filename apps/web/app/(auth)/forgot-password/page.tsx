@@ -2,35 +2,23 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { createClient } from '@/lib/supabase/client';
+import { useAuth } from '@/hooks/use-auth';
 
 export default function ForgotPasswordPage() {
+  const { resetPassword, isLoading } = useAuth();
   const [email, setEmail] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
   const [error, setError] = useState('');
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError('');
-    setIsLoading(true);
 
-    try {
-      const supabase = createClient();
-      const { error: resetError } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${window.location.origin}/reset-password`,
-      });
-
-      if (resetError) {
-        setError(resetError.message);
-        return;
-      }
-
+    const success = await resetPassword(email);
+    if (success) {
       setIsSuccess(true);
-    } catch {
-      setError('Terjadi kesalahan. Coba lagi.');
-    } finally {
-      setIsLoading(false);
+    } else {
+      setError('Gagal mengirim email. Coba lagi.');
     }
   }
 

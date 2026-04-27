@@ -1,39 +1,4 @@
-import {
-  CanActivate,
-  ExecutionContext,
-  Injectable,
-  UnauthorizedException,
-} from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
-import { createClient } from '@supabase/supabase-js';
+// This file is deprecated. Use jwt-auth.guard.ts instead.
+// Kept as stub to prevent import errors during migration cleanup.
 
-/** Verifies the Supabase JWT from the Authorization header */
-@Injectable()
-export class SupabaseAuthGuard implements CanActivate {
-  constructor(private readonly configService: ConfigService) {}
-
-  async canActivate(context: ExecutionContext): Promise<boolean> {
-    const request = context.switchToHttp().getRequest();
-    const authHeader = request.headers.authorization;
-
-    if (!authHeader?.startsWith('Bearer ')) {
-      throw new UnauthorizedException('Missing or invalid authorization header');
-    }
-
-    const token = authHeader.substring(7);
-    const supabase = createClient(
-      this.configService.getOrThrow<string>('SUPABASE_URL'),
-      this.configService.getOrThrow<string>('SUPABASE_SERVICE_ROLE_KEY'),
-    );
-
-    const { data, error } = await supabase.auth.getUser(token);
-
-    if (error || !data.user) {
-      throw new UnauthorizedException('Invalid or expired token');
-    }
-
-    // Attach user to request for downstream use
-    request.user = data.user;
-    return true;
-  }
-}
+export { JwtAuthGuard as SupabaseAuthGuard } from './jwt-auth.guard';

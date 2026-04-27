@@ -18,15 +18,15 @@ export class RolesGuard implements CanActivate {
     ]);
 
     const request = context.switchToHttp().getRequest();
-    const supabaseUser = request.user;
+    const user = request.user;
 
-    if (!supabaseUser?.id) {
+    if (!user?.id) {
       throw new ForbiddenException('User not authenticated');
     }
 
     // Always fetch and cache dbUser for downstream guards (PlanGuard)
     const dbUser = await this.prisma.user.findUnique({
-      where: { id: supabaseUser.id },
+      where: { id: user.id },
       select: { role: true, plan: true },
     });
 

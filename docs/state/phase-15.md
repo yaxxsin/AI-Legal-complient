@@ -1,16 +1,15 @@
 # Phase 15: Subscription & Billing
 
-## STATUS: ⬜ Not Started
+## STATUS: ✅ Completed
 ## DEPENDENCY: Phase 2
 ## ESTIMASI: M (~2 jam)
 
 ## SCOPE
-- [ ] F-09-01: Pricing page (4 plans, monthly/annual toggle)
-- [ ] Midtrans Snap checkout (VA, e-wallet, kartu kredit, retail)
-- [ ] Webhook: Midtrans signature verification + idempotency
-- [ ] Subscription lifecycle: create, renew, cancel, downgrade
-- [ ] Invoice PDF generation (jsPDF/Puppeteer)
-- [ ] Billing page UI + invoice history
+- [x] 1. Backend Setup & Midtrans Integration
+- [x] 2. Checkout & Webhook Endpoints
+- [x] 3. Subscription Lifecycle & Invoices
+- [x] 4. Frontend - Pricing Page
+- [x] 5. Frontend - Billing Dashboard
 
 ## CONTEXT
 MOD-09 dari blueprint. Subscription & billing via Midtrans.
@@ -19,6 +18,7 @@ Downgrade/cancel berlaku akhir periode billing.
 
 Blueprint ref: BAB 6 MOD-09 (F-09-01)
 
-## NOW: -
-## NEXT: -
-## CRUMBS: -
+## NOW: Phase 15 Complete
+## NEXT: Phase 16 (Admin Panel)
+## CRUMBS:
+- midtrans-client package installed in api

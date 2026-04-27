@@ -73,6 +73,11 @@ export class UpdateBusinessProfileDto {
 
   @ApiPropertyOptional()
   @IsOptional()
+  @IsDateString()
+  nibIssuedDate?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
   @IsString()
   @MaxLength(50)
   npwp?: string;
@@ -81,4 +86,12 @@ export class UpdateBusinessProfileDto {
   @IsOptional()
   @IsBoolean()
   isOnlineBusiness?: boolean;
+
+  @ApiPropertyOptional({ type: [String], description: 'KBLI 5-digit codes from NIB OCR' })
+  @IsOptional()
+  kbliCodes?: string[];
+
+  @ApiPropertyOptional({ type: [String], description: 'KBLI activity descriptions from NIB OCR' })
+  @IsOptional()
+  kbliDescriptions?: string[];
 }

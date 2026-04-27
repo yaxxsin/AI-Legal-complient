@@ -134,24 +134,33 @@ async function main(): Promise<void> {
   );
   console.log(`✅ ${subSectors.length} sub-sectors seeded`);
 
-  // Default feature flags
-  const flags = await Promise.all([
-    prisma.featureFlag.upsert({
-      where: { key: 'compliance_bot' },
-      update: {},
-      create: { key: 'compliance_bot', enabled: true, targetPlans: ['free', 'starter', 'growth', 'business'] },
-    }),
-    prisma.featureFlag.upsert({
-      where: { key: 'document_generator' },
-      update: {},
-      create: { key: 'document_generator', enabled: true, targetPlans: ['free', 'starter', 'growth', 'business'] },
-    }),
-    prisma.featureFlag.upsert({
-      where: { key: 'document_review_ai' },
-      update: {},
-      create: { key: 'document_review_ai', enabled: false, targetPlans: ['growth', 'business'] },
-    }),
-  ]);
+  // Default feature flags — keys MUST match @RequireFeature() decorators on controllers
+  // targetPlans [] = all plans allowed, specific array = only those plans
+  const ALL_PLANS = ['free', 'starter', 'growth', 'business'];
+  const PAID_ONLY = ['growth', 'business'];
+  const flagData = [
+    { key: 'menu-dashboard', enabled: true, targetPlans: ALL_PLANS },
+    { key: 'menu-chat', enabled: true, targetPlans: ALL_PLANS },
+    { key: 'menu-checklist', enabled: true, targetPlans: ALL_PLANS },
+    { key: 'menu-documents', enabled: true, targetPlans: ALL_PLANS },
+    { key: 'menu-doc-review', enabled: true, targetPlans: PAID_ONLY },
+    { key: 'menu-hr', enabled: true, targetPlans: PAID_ONLY },
+    { key: 'menu-notifications', enabled: true, targetPlans: ALL_PLANS },
+    { key: 'menu-knowledge', enabled: true, targetPlans: ALL_PLANS },
+    { key: 'menu-billing', enabled: true, targetPlans: ALL_PLANS },
+    { key: 'menu-settings', enabled: true, targetPlans: ALL_PLANS },
+    { key: 'menu-oss-wizard', enabled: true, targetPlans: ALL_PLANS },
+  ];
+
+  const flags = await Promise.all(
+    flagData.map((f) =>
+      prisma.featureFlag.upsert({
+        where: { key: f.key },
+        update: { enabled: f.enabled },
+        create: { key: f.key, enabled: f.enabled, targetPlans: f.targetPlans },
+      }),
+    ),
+  );
   console.log(`✅ ${flags.length} feature flags seeded`);
 
   console.log('🎉 Seed completed!');

@@ -1,73 +1,41 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createServerClient } from '@supabase/ssr';
 
 /**
  * Auth callback route handler
- * Handles Supabase redirects for:
- * - Email verification
- * - Password reset
- * - OAuth (Google SSO)
+ * Handles redirects for:
+ * - Email verification (token from email link)
+ * - Password reset redirect
+ *
+ * Google SSO is deferred to Phase 2.
  */
 export async function GET(request: NextRequest) {
   const { searchParams, origin } = new URL(request.url);
-  const code = searchParams.get('code');
+  const token = searchParams.get('token');
+  const type = searchParams.get('type');
   const next = searchParams.get('next') ?? '/dashboard';
 
-  if (code) {
-    const response = NextResponse.redirect(`${origin}${next}`);
-
-    const supabase = createServerClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-      {
-        cookies: {
-          getAll() {
-            return request.cookies.getAll();
-          },
-          setAll(cookiesToSet: { name: string; value: string; options?: Record<string, unknown> }[]) {
-            cookiesToSet.forEach(({ name, value, options }: { name: string; value: string; options?: Record<string, unknown> }) => {
-              response.cookies.set(name, value, options as never);
-            });
-          },
-        },
-      },
-    );
-
-    const { error } = await supabase.auth.exchangeCodeForSession(code);
-
-    if (!error) {
-      // Sync user to our NestJS backend (handles both email verify and Google SSO)
-      try {
-        const { data: { session } } = await supabase.auth.getSession();
-
-        if (session?.access_token) {
-          const apiUrl = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000/api/v1';
-
-          const syncResponse = await fetch(`${apiUrl}/auth/google`, {
-            method: 'POST',
-            headers: {
-              'Authorization': `Bearer ${session.access_token}`,
-              'Content-Type': 'application/json',
-            },
-          });
-
-          // If user is new (no onboarding), redirect to onboarding
-          if (syncResponse.ok) {
-            const data = await syncResponse.json();
-            if (data.isNewUser) {
-              return NextResponse.redirect(`${origin}/onboarding`);
-            }
-          }
-        }
-      } catch {
-        // Non-blocking: sync failure shouldn't prevent login
-        // User will be synced on next API call via auth guard
-      }
-
-      return response;
-    }
+  // Email verification callback
+  if (type === 'verify' && token) {
+    // TODO: Call NestJS API to verify email token
+    return NextResponse.redirect(`${origin}/login?verified=true`);
   }
 
-  // If no code or error, redirect to login with error
+  // Password reset callback — redirect to reset form with token
+  if (type === 'reset' && token) {
+    return NextResponse.redirect(`${origin}/reset-password?token=${token}`);
+  }
+
+  // Generic callback — just redirect
+  if (token) {
+    const response = NextResponse.redirect(`${origin}${next}`);
+    response.cookies.set('access_token', token, {
+      path: '/',
+      maxAge: 3600,
+      sameSite: 'lax',
+    });
+    return response;
+  }
+
+  // If no token, redirect to login with error
   return NextResponse.redirect(`${origin}/login?error=callback_failed`);
 }

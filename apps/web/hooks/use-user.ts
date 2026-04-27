@@ -1,9 +1,10 @@
 'use client';
 
 import { useQuery } from '@tanstack/react-query';
-import { createClient } from '@/lib/supabase/client';
 import { useAuthStore } from '@/stores/auth-store';
 import { useEffect } from 'react';
+
+const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001/api/v1';
 
 interface UserProfile {
   id: string;
@@ -20,18 +21,9 @@ interface UserProfile {
 }
 
 async function fetchCurrentUser(): Promise<UserProfile | null> {
-  const supabase = createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-
-  if (!user) return null;
-
-  const apiUrl = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001/api/v1';
-  const { data: { session } } = await supabase.auth.getSession();
-
-  if (!session) return null;
-
-  const response = await fetch(`${apiUrl}/users/me`, {
-    headers: { Authorization: `Bearer ${session.access_token}` },
+  // httpOnly cookies are sent automatically with credentials: 'include'
+  const response = await fetch(`${API_URL}/users/me`, {
+    credentials: 'include',
   });
 
   if (!response.ok) return null;

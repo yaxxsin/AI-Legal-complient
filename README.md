@@ -9,10 +9,12 @@ Platform SaaS yang membantu UMKM dan startup Indonesia memahami dan memenuhi kew
 | Layer | Technology |
 |-------|-----------|
 | **Frontend** | Next.js 14 (App Router), Tailwind CSS, shadcn/ui, Zustand, TanStack Query |
-| **Backend** | NestJS, Prisma ORM, PostgreSQL (Supabase) |
-| **AI** | Anthropic Claude, OpenAI Embeddings, Pinecone |
-| **Infra** | Vercel (web), Railway (api), Supabase (auth + DB + storage) |
-| **CI/CD** | GitHub Actions |
+| **Backend** | NestJS, Prisma ORM, PostgreSQL 16 |
+| **AI** | Ollama (Qwen 2.5), OpenAI Embeddings, Pinecone |
+| **Auth** | Custom JWT (jsonwebtoken + bcryptjs, httpOnly cookie) |
+| **Storage** | MinIO (S3-compatible, self-hosted) |
+| **Infra** | Docker Compose (PostgreSQL + Redis + MinIO + API + Web) |
+| **CI/CD** | GitHub Actions → Docker build |
 
 ## 📁 Project Structure
 
@@ -25,6 +27,7 @@ localcompliance/
 │   ├── types/        ← Shared TypeScript types
 │   └── utils/        ← Shared utility functions
 ├── docs/             ← Engine state files
+├── docker-compose.yml ← Full dev stack
 └── master_blueprint.md
 ```
 
@@ -34,16 +37,31 @@ localcompliance/
 
 - Node.js ≥ 20
 - pnpm ≥ 9
-- Supabase project (for auth & database)
+- Docker Desktop (for PostgreSQL, Redis, MinIO)
 
-### Setup
+### Setup (Docker — recommended)
 
 ```bash
+# Start all infrastructure (PostgreSQL, Redis, MinIO, API, Web)
+docker-compose up -d
+
+# Wait for services to be healthy, then access:
+# Frontend: http://localhost:3000
+# Backend:  http://localhost:3001/api/v1
+# MinIO:    http://localhost:9001 (admin: minioadmin/minioadmin)
+```
+
+### Setup (Hybrid — DB in Docker, apps on host)
+
+```bash
+# Start infra only
+docker-compose up -d postgres redis minio
+
 # Install dependencies
 pnpm install
 
 # Copy env template
-cp .env.example .env.local
+cp .env .env.local
 
 # Generate Prisma client
 pnpm db:generate
@@ -77,6 +95,16 @@ This starts:
 | `pnpm db:migrate` | Run Prisma migrations |
 | `pnpm db:seed` | Seed database |
 | `pnpm db:studio` | Open Prisma Studio |
+
+## 🐳 Docker Commands
+
+| Command | Description |
+|---------|------------|
+| `docker-compose up -d` | Start all services |
+| `docker-compose down` | Stop all services |
+| `docker-compose down -v` | Stop + delete volumes (reset DB) |
+| `docker-compose logs -f api` | Follow API logs |
+| `docker-compose ps` | Show service status |
 
 ## 🌿 Branch Strategy
 

@@ -2,14 +2,19 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { createClient } from '@/lib/supabase/client';
+
+const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001/api/v1';
 
 interface AuthState {
   isLoading: boolean;
   error: string | null;
 }
 
-/** Hook for Supabase auth actions (client-side) */
+/**
+ * Hook for auth actions — calls NestJS API directly.
+ * Cookies are now set server-side via Set-Cookie headers (httpOnly).
+ * Frontend no longer touches document.cookie for auth tokens.
+ */
 export function useAuth() {
   const router = useRouter();
   const [state, setState] = useState<AuthState>({
@@ -17,58 +22,73 @@ export function useAuth() {
     error: null,
   });
 
-  const supabase = createClient();
-
   /** Register with email + password */
   async function signUp(email: string, password: string, fullName: string) {
     setState({ isLoading: true, error: null });
 
-    const { error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        data: { full_name: fullName },
-        emailRedirectTo: `${window.location.origin}/auth/callback`,
-      },
-    });
+    try {
+      const res = await fetch(`${API_URL}/auth/register`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include', // Required for Set-Cookie to work cross-origin
+        body: JSON.stringify({ email, password, fullName }),
+      });
 
-    if (error) {
-      setState({ isLoading: false, error: error.message });
+      const data = await res.json();
+      if (!res.ok) {
+        setState({ isLoading: false, error: data.message ?? 'Registrasi gagal' });
+        return false;
+      }
+
+      // Cookies are set automatically via Set-Cookie response headers
+      setState({ isLoading: false, error: null });
+      return true;
+    } catch {
+      setState({ isLoading: false, error: 'Terjadi kesalahan jaringan' });
       return false;
     }
-
-    setState({ isLoading: false, error: null });
-    return true;
   }
 
   /** Sign in with email + password */
   async function signIn(email: string, password: string) {
     setState({ isLoading: true, error: null });
 
-    const { error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
+    try {
+      const res = await fetch(`${API_URL}/auth/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ email, password }),
+      });
 
-    if (error) {
-      setState({ isLoading: false, error: 'Email atau password salah' });
+      const data = await res.json();
+      if (!res.ok) {
+        setState({ isLoading: false, error: data.message ?? 'Email atau password salah' });
+        return false;
+      }
+
+      // Cookies are set automatically via Set-Cookie response headers
+      setState({ isLoading: false, error: null });
+      router.refresh();
+      return true;
+    } catch {
+      setState({ isLoading: false, error: 'Terjadi kesalahan jaringan' });
       return false;
     }
-
-    setState({ isLoading: false, error: null });
-    router.refresh();
-    return true;
   }
 
   /** Sign out current session */
   async function signOut() {
     setState({ isLoading: true, error: null });
 
-    const { error } = await supabase.auth.signOut();
-
-    if (error) {
-      setState({ isLoading: false, error: error.message });
-      return false;
+    try {
+      // Call server to revoke session + clear httpOnly cookies
+      await fetch(`${API_URL}/auth/logout`, {
+        method: 'POST',
+        credentials: 'include',
+      });
+    } catch {
+      // Even if API call fails, proceed with client-side cleanup
     }
 
     setState({ isLoading: false, error: null });
@@ -77,93 +97,69 @@ export function useAuth() {
     return true;
   }
 
+  /** Refresh access token (called when 401 detected) */
+  async function refreshAccessToken(): Promise<boolean> {
+    try {
+      const res = await fetch(`${API_URL}/auth/refresh`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+      });
+
+      return res.ok;
+    } catch {
+      return false;
+    }
+  }
+
   /** Send reset password email */
   async function resetPassword(email: string) {
     setState({ isLoading: true, error: null });
 
-    const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: `${window.location.origin}/reset-password`,
-    });
+    try {
+      const res = await fetch(`${API_URL}/auth/forgot-password`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email }),
+      });
 
-    if (error) {
-      setState({ isLoading: false, error: error.message });
+      if (!res.ok) {
+        setState({ isLoading: false, error: 'Gagal mengirim email reset' });
+        return false;
+      }
+
+      setState({ isLoading: false, error: null });
+      return true;
+    } catch {
+      setState({ isLoading: false, error: 'Terjadi kesalahan jaringan' });
       return false;
     }
-
-    setState({ isLoading: false, error: null });
-    return true;
   }
 
-  /** Update password (while authenticated) */
-  async function updatePassword(newPassword: string) {
-    setState({ isLoading: true, error: null });
-
-    const { error } = await supabase.auth.updateUser({
-      password: newPassword,
-    });
-
-    if (error) {
-      setState({ isLoading: false, error: error.message });
-      return false;
-    }
-
-    setState({ isLoading: false, error: null });
-    return true;
-  }
-
-  /** Sign in with Google OAuth (redirects to Google) */
-  async function signInWithGoogle(redirectTo?: string) {
-    setState({ isLoading: true, error: null });
-
-    const { error } = await supabase.auth.signInWithOAuth({
-      provider: 'google',
-      options: {
-        redirectTo: redirectTo ?? `${window.location.origin}/auth/callback`,
-      },
-    });
-
-    if (error) {
-      setState({ isLoading: false, error: error.message });
-      return false;
-    }
-
-    // Browser redirects — loading stays true
-    return true;
-  }
-
-  /** Change password (verify old password first, then update) */
+  /** Change password (verify old password first) */
   async function changePassword(oldPassword: string, newPassword: string) {
     setState({ isLoading: true, error: null });
 
-    // Step 1: Verify old password by attempting sign-in
-    const { data: userData } = await supabase.auth.getUser();
-    if (!userData?.user?.email) {
-      setState({ isLoading: false, error: 'Sesi tidak valid. Silakan login ulang.' });
+    try {
+      const res = await fetch(`${API_URL}/users/me/change-password`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ oldPassword, newPassword }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        setState({ isLoading: false, error: data.message ?? 'Gagal mengubah password' });
+        return false;
+      }
+
+      setState({ isLoading: false, error: null });
+      return true;
+    } catch {
+      setState({ isLoading: false, error: 'Terjadi kesalahan jaringan' });
       return false;
     }
-
-    const { error: verifyError } = await supabase.auth.signInWithPassword({
-      email: userData.user.email,
-      password: oldPassword,
-    });
-
-    if (verifyError) {
-      setState({ isLoading: false, error: 'Password lama salah' });
-      return false;
-    }
-
-    // Step 2: Update to new password
-    const { error: updateError } = await supabase.auth.updateUser({
-      password: newPassword,
-    });
-
-    if (updateError) {
-      setState({ isLoading: false, error: updateError.message });
-      return false;
-    }
-
-    setState({ isLoading: false, error: null });
-    return true;
   }
 
   return {
@@ -171,9 +167,8 @@ export function useAuth() {
     signUp,
     signIn,
     signOut,
+    refreshAccessToken,
     resetPassword,
-    updatePassword,
-    signInWithGoogle,
     changePassword,
   };
 }

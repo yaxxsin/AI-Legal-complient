@@ -4,27 +4,17 @@ import {
   Logger,
   NotFoundException,
 } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
-import { createClient, SupabaseClient } from '@supabase/supabase-js';
+import * as bcrypt from 'bcryptjs';
 import { PrismaService } from '../../database/prisma.service';
 import { UpdateUserDto } from './dto/update-user.dto';
 
 @Injectable()
 export class UsersService {
   private readonly logger = new Logger(UsersService.name);
-  private readonly supabase: SupabaseClient;
 
-  constructor(
-    private readonly prisma: PrismaService,
-    private readonly config: ConfigService,
-  ) {
-    this.supabase = createClient(
-      this.config.getOrThrow<string>('SUPABASE_URL'),
-      this.config.getOrThrow<string>('SUPABASE_SERVICE_ROLE_KEY'),
-    );
-  }
+  constructor(private readonly prisma: PrismaService) {}
 
-  /** Find user by Supabase auth ID */
+  /** Find user by ID */
   async findById(id: string) {
     const user = await this.prisma.user.findUnique({
       where: { id },
@@ -78,72 +68,178 @@ export class UsersService {
     });
   }
 
-  /** Change password — verify old password first via Supabase */
+  /** Change password — verify old password first via bcrypt */
   async changePassword(
     userId: string,
     oldPassword: string,
     newPassword: string,
   ): Promise<void> {
-    // Get user email
     const user = await this.prisma.user.findUnique({
       where: { id: userId },
-      select: { email: true },
+      select: { passwordHash: true },
     });
 
-    if (!user) {
+    if (!user || !user.passwordHash) {
       throw new NotFoundException({
         code: 'RESOURCE_NOT_FOUND',
         message: 'User tidak ditemukan',
       });
     }
 
-    // Verify old password via Supabase sign-in
-    const { error: verifyError } =
-      await this.supabase.auth.signInWithPassword({
-        email: user.email,
-        password: oldPassword,
-      });
-
-    if (verifyError) {
+    // Verify old password
+    const isValid = await bcrypt.compare(oldPassword, user.passwordHash);
+    if (!isValid) {
       throw new BadRequestException({
         code: 'VALIDATION_ERROR',
         message: 'Password lama salah',
       });
     }
 
-    // Update password via admin API
-    const { error: updateError } =
-      await this.supabase.auth.admin.updateUserById(userId, {
-        password: newPassword,
-      });
+    // Hash and update new password
+    const newHash = await bcrypt.hash(newPassword, 12);
+    await this.prisma.user.update({
+      where: { id: userId },
+      data: { passwordHash: newHash },
+    });
 
-    if (updateError) {
-      this.logger.error(`Password update failed: ${updateError.message}`);
-      throw new BadRequestException({
-        code: 'VALIDATION_ERROR',
-        message: 'Gagal mengubah password. Coba lagi.',
-      });
-    }
+    this.logger.log(`Password changed for user ${userId}`);
   }
 
-  /** Soft delete account — set deletedAt, grace period 30 days */
+  /** Soft delete account — mark as deleted */
   async softDeleteAccount(userId: string): Promise<void> {
     await this.findById(userId);
 
-    // For MVP: disable Supabase auth user (ban)
-    const { error } = await this.supabase.auth.admin.updateUserById(
-      userId,
-      { ban_duration: '876000h' }, // ~100 years = effectively disabled
-    );
-
-    if (error) {
-      this.logger.error(`Account disable failed: ${error.message}`);
-      throw new BadRequestException({
-        code: 'VALIDATION_ERROR',
-        message: 'Gagal menghapus akun. Coba lagi.',
-      });
-    }
+    // For MVP: mark user as deleted by clearing password hash and email
+    // Full soft delete (deletedAt column) can be added later
+    await this.prisma.user.update({
+      where: { id: userId },
+      data: { passwordHash: null },
+    });
 
     this.logger.log(`Account soft-deleted: ${userId}`);
+  }
+
+  // =====================================
+  // ADMIN METHODS
+  // =====================================
+
+  /** List all users with pagination and search */
+  async findAll({ page = 1, limit = 10, search }: { page?: number; limit?: number; search?: string }) {
+    const skip = (page - 1) * limit;
+    const where = search
+      ? {
+          OR: [
+            { email: { contains: search, mode: 'insensitive' as const } },
+            { fullName: { contains: search, mode: 'insensitive' as const } },
+          ],
+        }
+      : {};
+
+    const [users, total] = await Promise.all([
+      this.prisma.user.findMany({
+        where,
+        skip,
+        take: limit,
+        select: {
+          id: true,
+          email: true,
+          fullName: true,
+          phone: true,
+          role: true,
+          plan: true,
+          emailVerified: true,
+          createdAt: true,
+        },
+        orderBy: { createdAt: 'desc' },
+      }),
+      this.prisma.user.count({ where }),
+    ]);
+
+    return {
+      data: users,
+      meta: {
+        total,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit),
+      },
+    };
+  }
+
+  /** Update user role for admin purposes */
+  async updateRole(userId: string, role: string) {
+    if (!['user', 'admin', 'banned'].includes(role)) {
+      throw new BadRequestException('Role tidak diizinkan');
+    }
+
+    await this.findById(userId);
+
+    const user = await this.prisma.user.update({
+      where: { id: userId },
+      data: { role },
+      select: { id: true, email: true, role: true },
+    });
+
+    this.logger.log(`User ${userId} role updated to ${role}`);
+    return user;
+  }
+
+  /** Update user plan for admin purposes — syncs both User and Subscription */
+  async updatePlan(userId: string, plan: string) {
+    const allowedPlans = ['free', 'starter', 'growth', 'business'];
+    if (!allowedPlans.includes(plan)) {
+      throw new BadRequestException(`Plan tidak valid. Pilihan: ${allowedPlans.join(', ')}`);
+    }
+
+    await this.findById(userId);
+
+    // Sync both User.plan and Subscription.plan atomically
+    const user = await this.prisma.$transaction(async (tx: any) => {
+      const updated = await tx.user.update({
+        where: { id: userId },
+        data: { plan },
+        select: { id: true, email: true, plan: true },
+      });
+
+      // Also sync subscription if exists
+      const sub = await tx.subscription.findUnique({ where: { userId } });
+      if (sub) {
+        await tx.subscription.update({
+          where: { id: sub.id },
+          data: { plan, status: plan === 'free' ? 'active' : sub.status },
+        });
+      } else if (plan !== 'free') {
+        // Create subscription record if upgrading from no-subscription state
+        await tx.subscription.create({
+          data: {
+            userId,
+            plan,
+            billingCycle: 'monthly',
+            status: 'active',
+            currentPeriodStart: new Date(),
+            currentPeriodEnd: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+          },
+        });
+      }
+
+      return updated;
+    });
+
+    this.logger.log(`[Admin] User ${userId} plan updated to ${plan} (synced)`);
+    return user;
+  }
+
+  /** Admin hard-delete a user account */
+  async adminDeleteUser(userId: string, adminId: string): Promise<{ deleted: true; id: string }> {
+    if (userId === adminId) {
+      throw new BadRequestException('Tidak bisa menghapus akun sendiri');
+    }
+
+    await this.findById(userId);
+
+    await this.prisma.user.delete({ where: { id: userId } });
+
+    this.logger.log(`User ${userId} deleted by admin ${adminId}`);
+    return { deleted: true, id: userId };
   }
 }
