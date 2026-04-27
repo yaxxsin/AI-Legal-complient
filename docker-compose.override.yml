@@ -7,5 +7,9 @@ services:
   web:
     build:
       args:
-        # API URL untuk browser (client-side)
-        NEXT_PUBLIC_API_URL: https://api.locallitix.my.id/api/v1
+        # API URL untuk server-side (internal Docker network)
+        # Frontend akan proxy request via Next.js API routes
+        NEXT_PUBLIC_API_URL: /api/v1
+    environment:
+      # Internal API URL untuk server-side calls
+      INTERNAL_API_URL: http://api:3002/api/v1

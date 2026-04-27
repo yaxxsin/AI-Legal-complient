@@ -1,11 +1,17 @@
 import type { Metadata } from 'next';
 import ArticleDetailClient from './client';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3002/api/v1';
+// Get API URL based on context (server-side vs client-side)
+const getApiUrl = () => {
+  if (typeof window === 'undefined') {
+    return process.env.INTERNAL_API_URL || 'http://api:3002/api/v1';
+  }
+  return process.env.NEXT_PUBLIC_API_URL || '/api/v1';
+};
 
 export async function generateMetadata({ params }: { params: { slug: string } }): Promise<Metadata> {
   try {
-    const res = await fetch(`${API_URL}/articles/${params.slug}`);
+    const res = await fetch(`${getApiUrl()}/articles/${params.slug}`);
     if (!res.ok) {
       return { title: 'Artikel Tidak Ditemukan | LocalCompliance' };
     }

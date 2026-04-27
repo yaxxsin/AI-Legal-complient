@@ -1,8 +1,18 @@
 import Link from 'next/link';
 
+// Get API URL based on context (server-side vs client-side)
+const getApiUrl = () => {
+  // Server-side: use internal Docker network URL
+  if (typeof window === 'undefined') {
+    return process.env.INTERNAL_API_URL || 'http://api:3002/api/v1';
+  }
+  // Client-side: use public API URL (will be proxied)
+  return process.env.NEXT_PUBLIC_API_URL || '/api/v1';
+};
+
 export async function generateMetadata() {
   try {
-    const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3002/api/v1'}/cms/public/pages/home`, { next: { revalidate: 60 } });
+    const res = await fetch(`${getApiUrl()}/cms/public/pages/home`, { next: { revalidate: 60 } });
     if (res.ok) {
       const data = await res.json();
       return {
@@ -22,7 +32,7 @@ export async function generateMetadata() {
 export default async function HomePage() {
   let cmsData = null;
   try {
-    const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3002/api/v1'}/cms/public/pages/home`, { next: { revalidate: 60 } });
+    const res = await fetch(`${getApiUrl()}/cms/public/pages/home`, { next: { revalidate: 60 } });
     if (res.ok) {
       cmsData = await res.json();
     }
