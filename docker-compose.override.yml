@@ -1,0 +1,11 @@
+# ============================================
+# LocalCompliance — Docker Compose Override
+# Server Deployment Configuration
+# ============================================
+
+services:
+  web:
+    build:
+      args:
+        # API URL untuk browser (client-side)
+        NEXT_PUBLIC_API_URL: http://192.168.20.73:3002/api/v1
