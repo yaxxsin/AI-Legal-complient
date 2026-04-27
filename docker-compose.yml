@@ -71,7 +71,7 @@ services:
         condition: service_healthy
     environment:
       DATABASE_URL: postgresql://postgres:postgres@postgres:5432/localcompliance
-      API_PORT: 3001
+      API_PORT: 3002
       CORS_ORIGIN: http://localhost:3000
       NODE_ENV: development
       JWT_SECRET: local-dev-jwt-secret-change-in-production-min32chars
@@ -91,7 +91,7 @@ services:
       PASAL_API_URL: https://pasal.id/api/v1
       PASAL_API_TOKEN: pasal_mcp_57537fd3c78f_0a4b4f074b8409b52a0ad49211b5ac15c296d962cb7b105f
     ports:
-      - "3001:3001"
+      - "3002:3002"
 
   # ── Next.js Frontend ─────────────────────
   web:
@@ -103,7 +103,7 @@ services:
     depends_on:
       - api
     environment:
-      NEXT_PUBLIC_API_URL: http://localhost:3001/api/v1
+      NEXT_PUBLIC_API_URL: http://localhost:3002/api/v1
       NODE_ENV: development
     ports:
       - "3000:3000"
