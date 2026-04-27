@@ -39,7 +39,7 @@ export default function AdminFeatureFlagsPage() {
 
   const fetchFlags = async () => {
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001/api/v1';
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3002/api/v1';
       const res = await fetch(`${apiUrl}/feature-flags`, {
         credentials: 'include',
       });
@@ -61,7 +61,7 @@ export default function AdminFeatureFlagsPage() {
   const handleToggle = async (key: string, currentState: boolean, existingId?: string) => {
     setIsUpdating(key);
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001/api/v1';
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3002/api/v1';
       
       if (existingId) {
         // Update existing flag
@@ -99,7 +99,7 @@ export default function AdminFeatureFlagsPage() {
     
     setIsUpdating(key + '-plans');
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001/api/v1';
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3002/api/v1';
       
       if (existingId) {
         await fetch(`${apiUrl}/feature-flags/${existingId}`, {

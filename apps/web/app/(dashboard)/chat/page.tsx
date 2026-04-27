@@ -43,7 +43,7 @@ interface ConversationItem {
   _count: { messages: number };
 }
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001/api/v1';
+const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3002/api/v1';
 
 export default function ChatPage() {
   const { user } = useAuthStore();

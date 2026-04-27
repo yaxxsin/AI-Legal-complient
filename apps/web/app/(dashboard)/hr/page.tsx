@@ -27,7 +27,7 @@ export default function HrCalculatorPage() {
     e.preventDefault();
     setIsLoading(true);
     try {
-      const res = await fetch('http://localhost:3001/api/v1/hr/calculate-bpjs', {
+      const res = await fetch('http://localhost:3002/api/v1/hr/calculate-bpjs', {
         method: 'POST',
         credentials: 'include',
         headers: {
@@ -51,7 +51,7 @@ export default function HrCalculatorPage() {
     e.preventDefault();
     setIsLoading(true);
     try {
-      const res = await fetch('http://localhost:3001/api/v1/hr/calculate-severance', {
+      const res = await fetch('http://localhost:3002/api/v1/hr/calculate-severance', {
         method: 'POST',
         credentials: 'include',
         headers: {

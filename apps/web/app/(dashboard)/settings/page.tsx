@@ -290,7 +290,7 @@ function SecurityTab() {
 
 /** Session Manager — list and revoke active sessions */
 function SessionManager({ onForceLogout }: { onForceLogout: () => void }) {
-  const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001/api/v1';
+  const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3002/api/v1';
 
   interface SessionItem {
     id: string;

@@ -7,7 +7,7 @@ import { Building2, ChevronDown, Plus, Check, Trash2 } from 'lucide-react';
 import { useProfiles } from '@/hooks/use-profiles';
 import { useAuthStore } from '@/stores/auth-store';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001/api/v1';
+const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3002/api/v1';
 
 const PLAN_LIMITS: Record<string, number> = {
   free: 1,

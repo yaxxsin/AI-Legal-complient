@@ -2,7 +2,7 @@ import Link from 'next/link';
 
 export async function generateMetadata() {
   try {
-    const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api/v1'}/cms/public/pages/home`, { next: { revalidate: 60 } });
+    const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3002/api/v1'}/cms/public/pages/home`, { next: { revalidate: 60 } });
     if (res.ok) {
       const data = await res.json();
       return {
@@ -22,7 +22,7 @@ export async function generateMetadata() {
 export default async function HomePage() {
   let cmsData = null;
   try {
-    const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api/v1'}/cms/public/pages/home`, { next: { revalidate: 60 } });
+    const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3002/api/v1'}/cms/public/pages/home`, { next: { revalidate: 60 } });
     if (res.ok) {
       cmsData = await res.json();
     }

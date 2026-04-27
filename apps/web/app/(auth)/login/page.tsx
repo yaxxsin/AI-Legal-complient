@@ -24,7 +24,7 @@ function LoginForm() {
     if (success) {
       // Fetch user profile to determine role-based redirect
       try {
-        const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001/api/v1';
+        const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3002/api/v1';
         const res = await fetch(`${API_URL}/users/me`, { credentials: 'include' });
         if (res.ok) {
           const userData = await res.json();
