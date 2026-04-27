@@ -55,7 +55,10 @@ export function useNotifications() {
     try {
       const res = await fetch(
         `${API_URL}/notifications?page=${p}&limit=20`,
-        { headers: getAuthHeaders() },
+        { 
+          headers: getAuthHeaders(),
+          credentials: 'include',
+        },
       );
       if (!res.ok) return;
       const data: NotificationsResponse = await res.json();
@@ -74,7 +77,10 @@ export function useNotifications() {
     try {
       const res = await fetch(
         `${API_URL}/notifications/unread-count`,
-        { headers: getAuthHeaders() },
+        { 
+          headers: getAuthHeaders(),
+          credentials: 'include',
+        },
       );
       if (!res.ok) return;
       const data = await res.json();
@@ -88,7 +94,11 @@ export function useNotifications() {
   async function markAsRead(id: string) {
     const res = await fetch(
       `${API_URL}/notifications/${id}/read`,
-      { method: 'PATCH', headers: getAuthHeaders() },
+      { 
+        method: 'PATCH', 
+        headers: getAuthHeaders(),
+        credentials: 'include',
+      },
     );
     if (res.ok) {
       setNotifications((prev) =>
@@ -102,7 +112,11 @@ export function useNotifications() {
   async function markAllAsRead() {
     const res = await fetch(
       `${API_URL}/notifications/read-all`,
-      { method: 'POST', headers: getAuthHeaders() },
+      { 
+        method: 'POST', 
+        headers: getAuthHeaders(),
+        credentials: 'include',
+      },
     );
     if (res.ok) {
       setNotifications((prev) => prev.map((n) => ({ ...n, isRead: true })));
@@ -114,7 +128,11 @@ export function useNotifications() {
   async function deleteNotification(id: string) {
     const res = await fetch(
       `${API_URL}/notifications/${id}`,
-      { method: 'DELETE', headers: getAuthHeaders() },
+      { 
+        method: 'DELETE', 
+        headers: getAuthHeaders(),
+        credentials: 'include',
+      },
     );
     if (res.ok) {
       setNotifications((prev) => prev.filter((n) => n.id !== id));
