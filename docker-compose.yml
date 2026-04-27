@@ -72,7 +72,7 @@ services:
     environment:
       DATABASE_URL: postgresql://postgres:postgres@postgres:5432/localcompliance
       API_PORT: 3002
-      CORS_ORIGIN: http://localhost:3000
+      CORS_ORIGIN: "*"
       NODE_ENV: development
       JWT_SECRET: local-dev-jwt-secret-change-in-production-min32chars
       JWT_EXPIRATION: 1h
@@ -104,7 +104,6 @@ services:
     depends_on:
       - api
     environment:
-      NEXT_PUBLIC_API_URL: http://localhost:3002/api/v1
       NODE_ENV: development
     ports:
       - "3000:3000"
