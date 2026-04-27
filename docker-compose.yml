@@ -64,6 +64,8 @@ services:
       dockerfile: apps/api/Dockerfile
     container_name: lc-api
     restart: unless-stopped
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     depends_on:
       postgres:
         condition: service_healthy
