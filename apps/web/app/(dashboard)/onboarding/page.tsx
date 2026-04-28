@@ -279,13 +279,26 @@ export default function OnboardingPage() {
       if (extracted.npwp) updateField('npwp', extracted.npwp);
       if (extracted.nibNumber) updateField('nibNumber', extracted.nibNumber);
       if (extracted.entityType) {
-        // Map string to standard ID/value if our combo supports it, currently it's just strings
         updateField('entityType', extracted.entityType.toLowerCase());
       }
       if (extracted.city) updateField('city', extracted.city);
       if (extracted.province) updateField('province', extracted.province);
 
-      alert('Teks berhasil dienkstrak! Cek otomatis field yang terisi.');
+      // Auto-fill NIB issued date + mark hasNib
+      if (extracted.nibIssuedDate) updateField('nibIssuedDate', extracted.nibIssuedDate);
+      if (extracted.nibNumber) {
+        updateField('hasNib', true);
+      }
+
+      // Auto-select sektor industri dari KBLI yang ditemukan di dokumen
+      if (extracted.sectorId) {
+        updateField('sectorId', extracted.sectorId);
+        updateField('subSectorIds', []);
+      }
+
+      const kbliInfo = extracted.kbliCode ? ` (KBLI: ${extracted.kbliCode})` : '';
+      const sectorInfo = extracted.sectorId ? ' Sektor industri otomatis terpilih.' : '';
+      alert(`Teks berhasil diekstrak!${kbliInfo}${sectorInfo} Cek otomatis field yang terisi.`);
     } catch(err) {
       setError((err as Error).message);
     } finally {
