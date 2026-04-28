@@ -1,11 +1,11 @@
 # ============================================
-# LocalCompliance � Docker Compose
+# LocalCompliance — Docker Compose
 # Full development stack: PostgreSQL + Redis + MinIO + API + Web
 # Usage: docker-compose up -d
 # ============================================
 
 services:
-  # -- PostgreSQL 16 -------------------------
+  # ── PostgreSQL 16 ─────────────────────────
   postgres:
     image: postgres:16-alpine
     container_name: lc-postgres
@@ -15,29 +15,29 @@ services:
       POSTGRES_PASSWORD: postgres
       POSTGRES_DB: localcompliance
     ports:
-      - "5436:5432"
+      - "5432:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:
-      test: [ "CMD-SHELL", "pg_isready -U postgres" ]
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
       interval: 5s
       timeout: 3s
       retries: 5
 
-  # -- Redis 7 (BullMQ queue) ----------------
+  # ── Redis 7 (BullMQ queue) ────────────────
   redis:
     image: redis:7-alpine
     container_name: lc-redis
     restart: unless-stopped
     ports:
-      - "6380:6379"
+      - "6379:6379"
     healthcheck:
-      test: [ "CMD", "redis-cli", "ping" ]
+      test: ["CMD", "redis-cli", "ping"]
       interval: 5s
       timeout: 3s
       retries: 5
 
-  # -- MinIO (S3-compatible storage) ---------
+  # ── MinIO (S3-compatible storage) ─────────
   minio:
     image: minio/minio:latest
     container_name: lc-minio
@@ -47,25 +47,23 @@ services:
       MINIO_ROOT_USER: minioadmin
       MINIO_ROOT_PASSWORD: minioadmin
     ports:
-      - "9004:9000"
-      - "9005:9001"
+      - "9000:9000"
+      - "9001:9001"
     volumes:
       - miniodata:/data
     healthcheck:
-      test: [ "CMD", "mc", "ready", "local" ]
+      test: ["CMD", "mc", "ready", "local"]
       interval: 5s
       timeout: 3s
       retries: 5
 
-  # -- NestJS API ----------------------------
+  # ── NestJS API ────────────────────────────
   api:
     build:
       context: .
       dockerfile: apps/api/Dockerfile
     container_name: lc-api
     restart: unless-stopped
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
     depends_on:
       postgres:
         condition: service_healthy
@@ -73,9 +71,9 @@ services:
         condition: service_healthy
     environment:
       DATABASE_URL: postgresql://postgres:postgres@postgres:5432/localcompliance
-      API_PORT: 3002
-      CORS_ORIGIN: http://web:3000,http://localhost:3000,http://192.168.20.73:3000
-      NODE_ENV: production
+      API_PORT: 3001
+      CORS_ORIGIN: http://localhost:3000,http://192.168.20.73:3000
+      NODE_ENV: development
       JWT_SECRET: local-dev-jwt-secret-change-in-production-min32chars
       JWT_EXPIRATION: 1h
       JWT_REFRESH_EXPIRATION: 30d
@@ -88,35 +86,25 @@ services:
       MINIO_SECRET_KEY: minioadmin
       MINIO_BUCKET: localcompliance
       MINIO_USE_SSL: "false"
-      MINIO_PUBLIC_HOST: localhost
       OLLAMA_BASE_URL: http://host.docker.internal:11434
-      OLLAMA_MODEL: llama3.2:1b
+      OLLAMA_MODEL: qwen2.5
       PASAL_API_URL: https://pasal.id/api/v1
       PASAL_API_TOKEN: pasal_mcp_57537fd3c78f_0a4b4f074b8409b52a0ad49211b5ac15c296d962cb7b105f
-    # Port 3002 tidak di-expose, hanya internal Docker network
-    # ports:
-    #   - "3002:3002"
+    ports:
+      - "3001:3001"
 
-  # -- Next.js Frontend ---------------------
+  # ── Next.js Frontend ─────────────────────
   web:
     build:
       context: .
       dockerfile: apps/web/Dockerfile
-      args:
-        # API URL untuk client-side (relative path, akan di-proxy oleh Next.js)
-        NEXT_PUBLIC_API_URL: /api/v1
-        NEXT_PUBLIC_SUPABASE_URL: https://placeholder.supabase.co
-        NEXT_PUBLIC_SUPABASE_ANON_KEY: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.placeholder
-        NEXT_PUBLIC_MIDTRANS_CLIENT_KEY: SB-Mid-client-REPLACE_WITH_YOUR_SANDBOX_KEY
-        NEXT_PUBLIC_MIDTRANS_IS_PRODUCTION: "false"
     container_name: lc-web
     restart: unless-stopped
     depends_on:
       - api
     environment:
+      NEXT_PUBLIC_API_URL: http://localhost:3001/api/v1
       NODE_ENV: development
-      # Internal API URL untuk server-side proxy
-      INTERNAL_API_URL: http://api:3002/api/v1
     ports:
       - "3000:3000"
 

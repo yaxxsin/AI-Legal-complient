@@ -10,15 +10,13 @@ import { nodeProfilingIntegration } from '@sentry/profiling-node';
 import { AppModule } from './app.module';
 
 async function bootstrap(): Promise<void> {
-  // Sentry SDK Setup (only if DSN is provided)
-  if (process.env.NEXT_PUBLIC_SENTRY_DSN) {
-    Sentry.init({
-      dsn: process.env.NEXT_PUBLIC_SENTRY_DSN,
-      integrations: [nodeProfilingIntegration()],
-      tracesSampleRate: 1.0,
-      profilesSampleRate: 1.0,
-    });
-  }
+  // Sentry SDK Setup
+  Sentry.init({
+    dsn: process.env.NEXT_PUBLIC_SENTRY_DSN || "https://examplePublicKey@o0.ingest.sentry.io/0",
+    integrations: [nodeProfilingIntegration()],
+    tracesSampleRate: 1.0,
+    profilesSampleRate: 1.0,
+  });
 
   const app = await NestFactory.create(AppModule, { bufferLogs: true });
 
@@ -31,12 +29,11 @@ async function bootstrap(): Promise<void> {
   app.use(cookieParser());
 
   // CORS
-  const corsOrigins = process.env.CORS_ORIGIN 
-    ? process.env.CORS_ORIGIN.split(',').map(o => o.trim())
-    : ['http://localhost:3000'];
-  
+  const corsOrigins = (process.env.CORS_ORIGIN ?? 'http://localhost:3000')
+    .split(',')
+    .map((o) => o.trim());
   app.enableCors({
-    origin: corsOrigins,
+    origin: corsOrigins.length === 1 ? corsOrigins[0] : corsOrigins,
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization'],

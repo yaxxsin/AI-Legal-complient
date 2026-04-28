@@ -28,8 +28,6 @@ interface WizardData {
   nibNumber: string;
   nibIssuedDate?: string;
   npwp: string;
-  kbliCodes: string[];
-  kbliDescriptions: string[];
 }
 
 const INITIAL_DATA: WizardData = {
@@ -47,8 +45,6 @@ const INITIAL_DATA: WizardData = {
   nibNumber: '',
   nibIssuedDate: '',
   npwp: '',
-  kbliCodes: [],
-  kbliDescriptions: [],
 };
 
 export default function OnboardingPage() {
@@ -60,7 +56,7 @@ export default function OnboardingPage() {
   const [error, setError] = useState('');
   const [isLimitReached, setIsLimitReached] = useState(false);
 
-  const apiUrl = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3002/api/v1';
+  const apiUrl = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001/api/v1';
 
   useEffect(() => {
     async function checkExistingDraft() {
@@ -127,7 +123,7 @@ export default function OnboardingPage() {
 
     const stepDataMap: Record<number, Record<string, unknown>> = {
       1: { entityType: data.entityType },
-      2: { sectorId: data.sectorId, subSectorIds: data.subSectorIds, kbliCodes: data.kbliCodes, kbliDescriptions: data.kbliDescriptions },
+      2: { sectorId: data.sectorId, subSectorIds: data.subSectorIds },
       3: {
         businessName: data.businessName,
         establishmentDate: data.establishmentDate || undefined,
@@ -283,26 +279,26 @@ export default function OnboardingPage() {
       if (extracted.npwp) updateField('npwp', extracted.npwp);
       if (extracted.nibNumber) updateField('nibNumber', extracted.nibNumber);
       if (extracted.entityType) {
-        // Map string to standard ID/value if our combo supports it, currently it's just strings
         updateField('entityType', extracted.entityType.toLowerCase());
       }
       if (extracted.city) updateField('city', extracted.city);
       if (extracted.province) updateField('province', extracted.province);
 
-      // KBLI extraction + auto-sector matching
-      if (extracted.kbliCodes?.length) {
-        updateField('kbliCodes', extracted.kbliCodes);
-        updateField('kbliDescriptions', extracted.kbliDescriptions || []);
-      }
-      if (extracted.suggestedSectorId) {
-        updateField('sectorId', extracted.suggestedSectorId);
-      }
-      if (extracted.suggestedSubSectorIds?.length) {
-        updateField('subSectorIds', extracted.suggestedSubSectorIds);
+      // Auto-fill NIB issued date + mark hasNib
+      if (extracted.nibIssuedDate) updateField('nibIssuedDate', extracted.nibIssuedDate);
+      if (extracted.nibNumber) {
+        updateField('hasNib', true);
       }
 
-      const kbliCount = extracted.kbliCodes?.length || 0;
-      alert(`Teks berhasil diekstrak!${kbliCount > 0 ? ` ${kbliCount} kode KBLI terdeteksi.` : ''} Cek otomatis field yang terisi.`);
+      // Auto-select sektor industri dari KBLI yang ditemukan di dokumen
+      if (extracted.sectorId) {
+        updateField('sectorId', extracted.sectorId);
+        updateField('subSectorIds', []);
+      }
+
+      const kbliInfo = extracted.kbliCode ? ` (KBLI: ${extracted.kbliCode})` : '';
+      const sectorInfo = extracted.sectorId ? ' Sektor industri otomatis terpilih.' : '';
+      alert(`Teks berhasil diekstrak!${kbliInfo}${sectorInfo} Cek otomatis field yang terisi.`);
     } catch(err) {
       setError((err as Error).message);
     } finally {
@@ -378,28 +374,12 @@ export default function OnboardingPage() {
         )}
 
         {currentStep === 2 && (
-          <>
-            {data.kbliCodes.length > 0 && (
-              <div className="mb-6 p-4 bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-800 rounded-xl">
-                <p className="text-xs font-medium text-green-700 dark:text-green-400 mb-2">
-                  ✅ KBLI terdeteksi dari dokumen NIB — sektor otomatis dipilih:
-                </p>
-                <div className="flex flex-wrap gap-1.5">
-                  {data.kbliCodes.map((code, i) => (
-                    <span key={code} className="inline-block text-xs bg-green-100 dark:bg-green-900/50 text-green-800 dark:text-green-300 px-2.5 py-1 rounded-lg font-mono">
-                      {code}{data.kbliDescriptions[i] ? ` — ${data.kbliDescriptions[i]}` : ''}
-                    </span>
-                  ))}
-                </div>
-              </div>
-            )}
-            <WizardStep2
-              sectorId={data.sectorId}
-              subSectorIds={data.subSectorIds}
-              onSectorChange={(id) => updateField('sectorId', id)}
-              onSubSectorChange={(ids) => updateField('subSectorIds', ids)}
-            />
-          </>
+          <WizardStep2
+            sectorId={data.sectorId}
+            subSectorIds={data.subSectorIds}
+            onSectorChange={(id) => updateField('sectorId', id)}
+            onSubSectorChange={(ids) => updateField('subSectorIds', ids)}
+          />
         )}
 
         {currentStep === 3 && (

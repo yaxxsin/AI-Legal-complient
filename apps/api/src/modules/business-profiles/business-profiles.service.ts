@@ -120,8 +120,6 @@ export class BusinessProfilesService {
         ...(dto.hasNib !== undefined && { hasNib: dto.hasNib }),
         ...(dto.nibNumber !== undefined && { nibNumber: dto.nibNumber }),
         ...(dto.npwp !== undefined && { npwp: dto.npwp }),
-        ...(dto.kbliCodes !== undefined && { kbliCodes: dto.kbliCodes }),
-        ...(dto.kbliDescriptions !== undefined && { kbliDescriptions: dto.kbliDescriptions }),
         ...(dto.isOnlineBusiness !== undefined && { isOnlineBusiness: dto.isOnlineBusiness }),
         isDraft: false,
         onboardingStep: 5,
@@ -220,8 +218,6 @@ export class BusinessProfilesService {
         return {
           ...(data.sectorId ? { sectorId: data.sectorId } : {}),
           ...(data.subSectorIds ? { subSectorIds: data.subSectorIds } : {}),
-          ...(data.kbliCodes ? { kbliCodes: data.kbliCodes } : {}),
-          ...(data.kbliDescriptions ? { kbliDescriptions: data.kbliDescriptions } : {}),
         };
       case 3:
         return {
@@ -250,16 +246,16 @@ export class BusinessProfilesService {
   }
 
   /** Try to extract structured data using regex patterns (fast, no AI) */
-  private tryRegexExtraction(text: string): Record<string, any> {
-    const result: Record<string, any> = {
+  private tryRegexExtraction(text: string): Record<string, string> {
+    const result: Record<string, string> = {
       businessName: '',
       npwp: '',
       nibNumber: '',
       entityType: '',
       city: '',
       province: '',
-      kbliCodes: [] as string[],
-      kbliDescriptions: [] as string[],
+      kbliCode: '',
+      nibIssuedDate: '',
     };
 
     // NIB: 13-digit number, multiple patterns for different NIB formats
@@ -315,63 +311,35 @@ export class BusinessProfilesService {
     const provMatch = text.match(/(?:Provinsi|Prov\.)[:\s/]*([A-Za-z\s]{3,30})/i);
     if (provMatch) result.province = provMatch[1].trim();
 
-    // KBLI: 5-digit codes with optional description
-    this.extractKbliFromText(text, result);
+    // NIB issued date: various Indonesian date formats
+    const datePatterns = [
+      /(?:Tanggal\s+Terbit|Diterbitkan\s+(?:pada|tanggal)|Tgl\.?\s+Terbit)[:\s]*([\d]{1,2}[\s/\-](?:Januari|Februari|Maret|April|Mei|Juni|Juli|Agustus|September|Oktober|November|Desember|\d{1,2})[\s/\-]\d{4})/i,
+      /(?:Tanggal\s+Terbit|Diterbitkan)[:\s]*(\d{1,2}[/\-]\d{1,2}[/\-]\d{4})/i,
+      /(?:Tanggal)[:\s]*(\d{1,2}\s+(?:Januari|Februari|Maret|April|Mei|Juni|Juli|Agustus|September|Oktober|November|Desember)\s+\d{4})/i,
+    ];
+    for (const pattern of datePatterns) {
+      const m = text.match(pattern);
+      if (m) {
+        result.nibIssuedDate = this.parseIndonesianDate(m[1].trim());
+        break;
+      }
+    }
+
+    // KBLI code: 5-digit number, often preceded by "KBLI" label
+    const kbliPatterns = [
+      /(?:KBLI)[:\s]*([\d]{4,5})/i,
+      /(?:Kode\s+KBLI)[:\s]*([\d]{4,5})/i,
+      /(?:Kegiatan\s+Usaha)[:\s]*([\d]{4,5})/i,
+    ];
+    for (const pattern of kbliPatterns) {
+      const m = text.match(pattern);
+      if (m) {
+        result.kbliCode = m[1].trim();
+        break;
+      }
+    }
 
     return result;
-  }
-
-  /** Extract KBLI codes and descriptions from OCR text */
-  private extractKbliFromText(
-    text: string,
-    result: Record<string, any>,
-  ): void {
-    const codes: string[] = [];
-    const descriptions: string[] = [];
-
-    // Pattern 1: "KBLI: 47111 - Perdagangan Eceran ..."
-    const kbliLabelPattern = /(?:KBLI)[:\s]*(\d{5})\s*[-–]\s*([^\n]{5,100})/gi;
-    let match: RegExpExecArray | null;
-    while ((match = kbliLabelPattern.exec(text)) !== null) {
-      if (!codes.includes(match[1])) {
-        codes.push(match[1]);
-        descriptions.push(match[2].trim());
-      }
-    }
-
-    // Pattern 2: "47111 Perdagangan Eceran ..." (numbered list or plain)
-    if (codes.length === 0) {
-      const listPattern = /(?:^|\n)\s*(?:\d+\.\s*)?(\d{5})\s+([A-Z][^\n]{5,100})/g;
-      while ((match = listPattern.exec(text)) !== null) {
-        const desc = match[2].trim();
-        // Filter: description must look like a business activity
-        if (/(?:Perdagangan|Industri|Jasa|Aktivitas|Pengolahan|Penyediaan|Konstruksi|Pertanian|Pertambangan|Pendidikan|Kesehatan|Keuangan|Real|Transportasi)/i.test(desc)) {
-          if (!codes.includes(match[1])) {
-            codes.push(match[1]);
-            descriptions.push(desc);
-          }
-        }
-      }
-    }
-
-    // Pattern 3: "Kegiatan Usaha" section with 5-digit codes
-    if (codes.length === 0) {
-      const sectionMatch = text.match(
-        /(?:Kegiatan Usaha|Bidang Usaha|Klasifikasi)[:\s]*\n([\s\S]{10,500}?)(?:\n\n|$)/i,
-      );
-      if (sectionMatch) {
-        const codePattern = /(\d{5})\s+([^\n]{5,100})/g;
-        while ((match = codePattern.exec(sectionMatch[1])) !== null) {
-          if (!codes.includes(match[1])) {
-            codes.push(match[1]);
-            descriptions.push(match[2].trim());
-          }
-        }
-      }
-    }
-
-    result.kbliCodes = codes;
-    result.kbliDescriptions = descriptions;
   }
 
   /**
@@ -385,6 +353,7 @@ export class BusinessProfilesService {
       'NIB', 'Nomor Induk', 'NPWP', 'Nama Perusahaan', 'Nama Usaha',
       'Nama Pelaku', 'Badan Usaha', 'Perseroan', 'Kota', 'Provinsi',
       'Kabupaten', 'Alamat', 'KBLI', 'Kegiatan Usaha', 'Modal',
+      'Tanggal Terbit', 'Diterbitkan', 'Tgl Terbit',
     ];
 
     const lines = fullText.split('\n');
@@ -494,9 +463,10 @@ export class BusinessProfilesService {
 
     // 4. AI Extraction via Ollama (for fields regex couldn't find)
     const prompt = `Ekstrak data dari dokumen NIB/NPWP/KTP berikut. Output HANYA JSON, tanpa markdown.
-Jika field tidak ditemukan, isi string kosong "" atau array kosong [].
-Format: {"businessName":"","npwp":"","nibNumber":"","entityType":"","city":"","province":"","kbliCodes":[],"kbliDescriptions":[]}
-kbliCodes = array kode KBLI 5 digit. kbliDescriptions = array nama kegiatan usaha.
+Jika field tidak ditemukan, isi string kosong "".
+KBLI adalah kode klasifikasi usaha 5 digit (contoh: 47111, 62011, 56101).
+nibIssuedDate adalah tanggal terbit NIB dalam format YYYY-MM-DD (contoh: 2024-03-15).
+Format: {"businessName":"","npwp":"","nibNumber":"","entityType":"","city":"","province":"","kbliCode":"","nibIssuedDate":""}
 
 Teks:
 ${truncatedText}`;
@@ -512,17 +482,8 @@ ${truncatedText}`;
       }
 
       // Merge: regex results take priority (more reliable), AI fills gaps
-      const kbliCodes = regexResult.kbliCodes?.length
-        ? regexResult.kbliCodes
-        : (aiResult.kbliCodes || []);
-      const kbliDescriptions = regexResult.kbliDescriptions?.length
-        ? regexResult.kbliDescriptions
-        : (aiResult.kbliDescriptions || []);
-
-      this.logger.log(`[OCR] KBLI found: ${kbliCodes.length} code(s): ${kbliCodes.join(', ')}`);
-
-      // Auto-match KBLI → Sector
-      const sectorMatch = await this.matchKbliToSector(kbliCodes);
+      const kbliCode = regexResult.kbliCode || aiResult.kbliCode || '';
+      const sectorId = kbliCode ? await this.lookupSectorByKbli(kbliCode) : '';
 
       return {
         businessName: regexResult.businessName || aiResult.businessName || '',
@@ -531,88 +492,106 @@ ${truncatedText}`;
         entityType: regexResult.entityType || aiResult.entityType || '',
         city: regexResult.city || aiResult.city || '',
         province: regexResult.province || aiResult.province || '',
-        kbliCodes,
-        kbliDescriptions,
-        suggestedSectorId: sectorMatch.sectorId,
-        suggestedSubSectorIds: sectorMatch.subSectorIds,
+        nibIssuedDate: regexResult.nibIssuedDate || aiResult.nibIssuedDate || '',
+        kbliCode,
+        sectorId,
       };
     } catch (e) {
       this.logger.error(`AI Extraction failed: ${(e as Error).message}`);
       // If AI fails but regex found something, return regex results
       if (regexResult.nibNumber || regexResult.npwp || regexResult.businessName) {
         this.logger.log('[OCR] AI failed but regex found data, returning partial result');
-        const sectorMatch = await this.matchKbliToSector(regexResult.kbliCodes || []);
-        return {
-          ...regexResult,
-          suggestedSectorId: sectorMatch.sectorId,
-          suggestedSubSectorIds: sectorMatch.subSectorIds,
-        };
+        const sectorId = regexResult.kbliCode
+          ? await this.lookupSectorByKbli(regexResult.kbliCode)
+          : '';
+        return { ...regexResult, sectorId };
       }
       throw new BadRequestException('Gagal mengekstrak data dari dokumen. Coba upload gambar (JPG/PNG) yang lebih jelas.');
     }
   }
 
   /**
-   * Map KBLI 5-digit codes to Sector in DB.
-   * Uses first 2 digits → ISIC section letter → Sector.code
+   * Lookup sector ID from KBLI code.
+   * Matches the first character (root sector code) against Sector.code in DB.
+   * E.g. KBLI "47111" → first char "4" maps to nothing, but KBLI section letter
+   * is derived from the numeric range. We match against sub-sector codes first,
+   * then fall back to root sector letter code.
    */
-  private async matchKbliToSector(kbliCodes: string[]): Promise<{
-    sectorId: string | null;
-    subSectorIds: string[];
-  }> {
-    if (!kbliCodes?.length) return { sectorId: null, subSectorIds: [] };
+  private async lookupSectorByKbli(kbliCode: string): Promise<string> {
+    if (!kbliCode) return '';
 
-    const prefix = parseInt(kbliCodes[0].substring(0, 2), 10);
-    const sectionCode = this.kbliPrefixToSection(prefix);
-    if (!sectionCode) return { sectorId: null, subSectorIds: [] };
+    try {
+      // Try exact sub-sector code match first (e.g. "C10", "J62")
+      // KBLI 5-digit → derive 2-char code: letter + first 2 digits
+      const kbliNum = parseInt(kbliCode.substring(0, 2), 10);
+      const sectionLetter = this.kbliToSectionLetter(kbliNum);
 
-    // Find root sector by ISIC section code
-    const sector = await this.prisma.sector.findFirst({
-      where: { code: sectionCode, parentId: null },
-    });
-    if (!sector) return { sectorId: null, subSectorIds: [] };
+      if (!sectionLetter) return '';
 
-    // Try to match sub-sectors by code prefix
-    const subSectors = await this.prisma.sector.findMany({
-      where: { parentId: sector.id },
-    });
+      // Try sub-sector match: e.g. code starts with "C10", "J62"
+      const subCode = `${sectionLetter}${kbliCode.substring(0, 2)}`;
+      const subSector = await this.prisma.sector.findFirst({
+        where: { code: subCode, parentId: { not: null } },
+      });
+      if (subSector?.parentId) return subSector.parentId;
 
-    const matchedSubIds = subSectors
-      .filter((sub) => {
-        if (!sub.code) return false;
-        // Sub-sector code like "G47", "C10", "J62" — extract numeric part
-        const subNumeric = sub.code.replace(/[A-Z]/gi, '');
-        return kbliCodes.some((code) => code.startsWith(subNumeric));
-      })
-      .map((sub) => sub.id);
-
-    this.logger.log(
-      `[KBLI] Matched sector: ${sector.name} (${sectionCode}), sub-sectors: ${matchedSubIds.length}`,
-    );
-
-    return { sectorId: sector.id, subSectorIds: matchedSubIds };
+      // Fall back to root sector by letter code
+      const rootSector = await this.prisma.sector.findFirst({
+        where: { code: sectionLetter, parentId: null },
+      });
+      return rootSector?.id ?? '';
+    } catch (err) {
+      this.logger.warn(`KBLI lookup failed for ${kbliCode}: ${(err as Error).message}`);
+      return '';
+    }
   }
 
-  /** Map KBLI first-2-digit prefix to ISIC section letter */
-  private kbliPrefixToSection(prefix: number): string | null {
-    if (prefix >= 1 && prefix <= 3) return 'A';
-    if (prefix >= 5 && prefix <= 9) return 'B';
-    if (prefix >= 10 && prefix <= 33) return 'C';
-    if (prefix >= 35 && prefix <= 39) return 'D'; // Listrik, Gas
-    if (prefix >= 41 && prefix <= 43) return 'F';
-    if (prefix >= 45 && prefix <= 47) return 'G';
-    if (prefix >= 49 && prefix <= 53) return 'H';
-    if (prefix >= 55 && prefix <= 56) return 'I';
-    if (prefix >= 58 && prefix <= 63) return 'J';
-    if (prefix >= 64 && prefix <= 66) return 'K';
-    if (prefix === 68) return 'L';
-    if (prefix >= 69 && prefix <= 75) return 'M';
-    if (prefix >= 77 && prefix <= 82) return 'N'; // Jasa Administrasi
-    if (prefix === 84) return 'O'; // Pemerintahan
-    if (prefix === 85) return 'P';
-    if (prefix >= 86 && prefix <= 88) return 'Q';
-    if (prefix >= 90 && prefix <= 93) return 'R';
-    if (prefix >= 94 && prefix <= 96) return 'S';
-    return null;
+  /** Parse Indonesian date string to ISO format (YYYY-MM-DD) */
+  private parseIndonesianDate(dateStr: string): string {
+    const months: Record<string, string> = {
+      januari: '01', februari: '02', maret: '03', april: '04',
+      mei: '05', juni: '06', juli: '07', agustus: '08',
+      september: '09', oktober: '10', november: '11', desember: '12',
+    };
+
+    // Try "DD Month YYYY" or "DD-Month-YYYY"
+    const m = dateStr.match(/(\d{1,2})[\s/\-]+([A-Za-z]+)[\s/\-]+(\d{4})/);
+    if (m) {
+      const day = m[1].padStart(2, '0');
+      const month = months[m[2].toLowerCase()] || m[2];
+      return `${m[3]}-${month}-${day}`;
+    }
+
+    // Try "DD/MM/YYYY" or "DD-MM-YYYY"
+    const n = dateStr.match(/(\d{1,2})[/\-](\d{1,2})[/\-](\d{4})/);
+    if (n) {
+      return `${n[3]}-${n[2].padStart(2, '0')}-${n[1].padStart(2, '0')}`;
+    }
+
+    return dateStr;
+  }
+
+  /** Map KBLI 2-digit numeric prefix to ISIC/KBLI section letter */
+  private kbliToSectionLetter(num: number): string {
+    if (num >= 1 && num <= 3) return 'A';   // Pertanian
+    if (num >= 5 && num <= 9) return 'B';   // Pertambangan
+    if (num >= 10 && num <= 33) return 'C'; // Industri Pengolahan
+    if (num >= 35 && num <= 35) return 'D'; // Listrik & Gas
+    if (num >= 36 && num <= 39) return 'E'; // Air & Limbah
+    if (num >= 41 && num <= 43) return 'F'; // Konstruksi
+    if (num >= 45 && num <= 47) return 'G'; // Perdagangan
+    if (num >= 49 && num <= 53) return 'H'; // Transportasi
+    if (num >= 55 && num <= 56) return 'I'; // Akomodasi & Makan
+    if (num >= 58 && num <= 63) return 'J'; // Informasi & Komunikasi
+    if (num >= 64 && num <= 66) return 'K'; // Keuangan & Asuransi
+    if (num === 68) return 'L';             // Real Estate
+    if (num >= 69 && num <= 75) return 'M'; // Jasa Profesional
+    if (num >= 77 && num <= 82) return 'N'; // Jasa Administrasi
+    if (num === 84) return 'O';             // Pemerintahan
+    if (num === 85) return 'P';             // Pendidikan
+    if (num >= 86 && num <= 88) return 'Q'; // Kesehatan
+    if (num >= 90 && num <= 93) return 'R'; // Kesenian & Rekreasi
+    if (num >= 94 && num <= 96) return 'S'; // Jasa Lainnya
+    return '';
   }
 }

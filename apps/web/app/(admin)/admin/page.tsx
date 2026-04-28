@@ -30,6 +30,7 @@ interface DashboardStats {
   totalRegulations: number;
   totalTemplates: number;
   totalCmsPages: number;
+  totalRules: number;
 }
 
 interface RecentUser {
@@ -49,6 +50,7 @@ const INITIAL_STATS: DashboardStats = {
   totalRegulations: 0,
   totalTemplates: 0,
   totalCmsPages: 0,
+  totalRules: 0,
 };
 
 /* ============================================
@@ -68,12 +70,13 @@ export default function AdminDashboardPage() {
       const opts: RequestInit = { credentials: 'include' };
 
       // Fetch all stats in parallel
-      const [usersRes, articlesRes, regulationsRes, templatesRes, cmsRes] = await Promise.allSettled([
+      const [usersRes, articlesRes, regulationsRes, templatesRes, cmsRes, rulesRes] = await Promise.allSettled([
         fetch(`${apiUrl}/users?limit=5`, opts),
         fetch(`${apiUrl}/admin/articles?limit=1`, opts),
         fetch(`${apiUrl}/regulations?limit=1`, opts),
         fetch(`${apiUrl}/documents/admin/templates`, opts),
         fetch(`${apiUrl}/cms/pages`, opts),
+        fetch(`${apiUrl}/compliance-rules`, opts),
       ]);
 
       const newStats = { ...INITIAL_STATS };
@@ -110,6 +113,12 @@ export default function AdminDashboardPage() {
       if (cmsRes.status === 'fulfilled' && cmsRes.value.ok) {
         const json = await cmsRes.value.json();
         newStats.totalCmsPages = Array.isArray(json) ? json.length : 0;
+      }
+
+      // Compliance Rules (array response)
+      if (rulesRes.status === 'fulfilled' && rulesRes.value.ok) {
+        const json = await rulesRes.value.json();
+        newStats.totalRules = Array.isArray(json) ? json.length : 0;
       }
 
       setStats(newStats);
@@ -188,6 +197,13 @@ export default function AdminDashboardPage() {
               icon={FileText}
               color="text-amber-500 bg-amber-500/10"
               href="/admin/templates"
+            />
+            <StatCard
+              title="Compliance Rules"
+              value={stats.totalRules}
+              icon={Shield}
+              color="text-rose-500 bg-rose-500/10"
+              href="/admin/rules"
             />
           </div>
 
@@ -306,6 +322,7 @@ export default function AdminDashboardPage() {
             <QuickLink href="/admin/articles" label="Kelola Artikel" icon={Newspaper} />
             <QuickLink href="/admin/templates" label="Kelola Templates" icon={FileText} />
             <QuickLink href="/admin/cms" label="CMS Builder" icon={LayoutPanelTop} />
+            <QuickLink href="/admin/rules" label="Compliance Rules" icon={Shield} />
           </div>
         </>
       )}
